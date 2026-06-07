@@ -676,9 +676,9 @@
 
       <div class="app-header">
         <div class="ai-header-info">
-          <div class="ai-avatar">🤖</div>
+          <div class="ai-avatar-header">🐕</div>
           <div class="ai-header-text">
-            <span class="ai-header-name">Asistente Tuali</span>
+            <span class="ai-header-name">Tualito</span>
             <span class="ai-header-status">En linea</span>
           </div>
         </div>
@@ -711,18 +711,31 @@
       </div>
     </div>
 
-    <!-- AI Floating Button -->
-    <button class="ai-fab" id="ai-fab" style="display:none;" onclick="navigateTo('asistente')">
-      🤖
-      <div class="ai-fab-badge" id="ai-fab-badge" style="display:none;"></div>
-    </button>
+    <!-- ===== TUALITO: MASCOTA VIRTUAL FLOTANTE (Persistente en todas las pantallas) ===== -->
+    <div id="tuali-mascota-flotante" class="tualito-widget">
+      <!-- Burbuja de contexto dinámico -->
+      <div class="tualito-bubble" id="tualito-bubble">
+        <button class="tualito-bubble-close" onclick="closeTualitoBubble()">&times;</button>
+        <div class="tualito-bubble-text" id="tualito-bubble-text">
+          ¡Hola! Soy <strong>Tualito</strong>, tu asistente. Tócame para ayudarte.
+        </div>
+        <button class="tualito-bubble-action" id="tualito-bubble-action" onclick="handleTualitoAction()">
+          💬 Ir al chat
+        </button>
+      </div>
+      <!-- Avatar de la mascota -->
+      <div class="tualito-avatar idle" id="tualito-avatar" onclick="onTualitoClick()" ondblclick="onTualitoDblClick()">
+        🐕
+        <!-- Badge de notificaciones -->
+        <span class="tualito-badge" id="tualito-badge">!</span>
+        <!-- Botón de voz accesible (adultos mayores) -->
+        <button class="tualito-voice-btn" id="tualito-voice-btn" onclick="event.stopPropagation(); tualitoVoice()">
+          <i class="fas fa-microphone"></i>
+        </button>
+      </div>
+    </div>
 
-    <!-- Botón de Voz Accesible (Adultos Mayores) -->
-    <button id="btn-tuali-voz" class="tuali-voice-fab" style="display:none;" onclick="quickVoiceOrder()">
-      🎤
-    </button>
-
-    <!-- AI Notification -->
+    <!-- AI Notification Banner -->
     <div class="ai-notification" id="ai-notification"></div>
 
     <!-- ===== BOTTOM NAVIGATION ===== -->

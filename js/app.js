@@ -41,34 +41,41 @@ function navigateTo(page) {
   const targetPage = document.getElementById(`page-${page}`);
   if (targetPage) targetPage.classList.add('active');
 
+  // Update bottom nav active state
   document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
   const navItems = document.querySelectorAll('.nav-item');
   const pageIndex = ['home', 'catalogo', 'pedidos', 'recompensas', 'perfil'].indexOf(page);
   if (pageIndex >= 0 && navItems[pageIndex]) navItems[pageIndex].classList.add('active');
 
   const bottomNav = document.getElementById('bottom-nav');
-  const aiFab = document.getElementById('ai-fab');
-  const voiceFab = document.getElementById('btn-tuali-voz');
 
   if (page === 'login') {
     bottomNav.style.display = 'none';
-    if (aiFab) aiFab.style.display = 'none';
-    if (voiceFab) voiceFab.style.display = 'none';
-  } else if (page === 'carrito' || page === 'asistente') {
+    hideTualitoWidget();
+  } else if (page === 'carrito') {
     bottomNav.style.display = 'none';
-    if (aiFab) aiFab.style.display = 'none';
-    if (voiceFab) voiceFab.style.display = 'none';
+    hideTualitoWidget();
+  } else if (page === 'asistente') {
+    bottomNav.style.display = 'none';
+    hideTualitoWidget();
+    initAI();
   } else {
     bottomNav.style.display = 'flex';
-    if (aiFab) aiFab.style.display = 'flex';
-    if (voiceFab) voiceFab.style.display = 'flex';
+    showTualitoWidget();
   }
 
+  // Page-specific logic
   if (page === 'catalogo') renderProducts();
   if (page === 'carrito') renderCart();
-  if (page === 'asistente') initAI();
-  if (page === 'home' && typeof loadAlertas === 'function') loadAlertas();
+  if (page === 'home') {
+    if (typeof loadAlertas === 'function') loadAlertas();
+    scheduleNotification();
+  }
+
+  // Update Tualito context for new page
   currentPage = page;
+  if (typeof updateTualitoContext === 'function') updateTualitoContext();
+  closeTualitoBubble();
 }
 
 function goBack() {

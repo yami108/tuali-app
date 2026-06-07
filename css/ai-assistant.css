@@ -1,7 +1,166 @@
 /* ============================================
-   TUALI AI - Estilos del Asistente
+   TUALITO - Mascota Virtual Flotante
+   Asistente IA persistente para Tuali
    ============================================ */
 
+/* ===== TUALITO WIDGET (Persistente en TODAS las pantallas) ===== */
+.tualito-widget {
+  position: fixed;
+  bottom: 75px;
+  right: 16px;
+  z-index: 950;
+  display: none;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+.tualito-widget.visible { display: flex; }
+
+/* Burbuja de contexto (tooltip estilizado) */
+.tualito-bubble {
+  background: white;
+  border-radius: 16px 16px 4px 16px;
+  padding: 12px 14px;
+  max-width: 230px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  position: relative;
+  animation: bubbleFadeIn 0.4s ease;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  display: none;
+}
+.tualito-bubble.show { display: block; }
+
+.tualito-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  right: 20px;
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  transform: rotate(45deg);
+}
+
+.tualito-bubble-close {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+}
+
+.tualito-bubble-text { font-size: 12px; font-weight: 500; }
+.tualito-bubble-text strong { color: var(--primary-red); }
+
+.tualito-bubble-action {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 4px 10px;
+  background: var(--primary-red);
+  color: white;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.1s;
+}
+.tualito-bubble-action:active { transform: scale(0.95); }
+
+@keyframes bubbleFadeIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Mascota Avatar */
+.tualito-avatar {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-red), #FF6B35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(227,6,19,0.35);
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.tualito-avatar:active { transform: scale(0.9); }
+
+/* Estados animados de Tualito */
+.tualito-avatar.idle { animation: tualitoBreathe 3s ease-in-out infinite; }
+.tualito-avatar.thinking { animation: tualitoThink 0.8s ease-in-out infinite; }
+.tualito-avatar.listening { animation: tualitoListen 1.2s ease-in-out infinite; box-shadow: 0 0 0 0 rgba(227,6,19,0.4); }
+.tualito-avatar.excited { animation: tualitoExcited 0.5s ease-in-out 3; }
+.tualito-avatar.alert { animation: tualitoAlert 0.8s ease-in-out infinite; box-shadow: 0 4px 16px rgba(255,140,0,0.5); }
+
+@keyframes tualitoBreathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes tualitoThink { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-3deg); } 75% { transform: rotate(3deg); } }
+@keyframes tualitoListen { 0% { box-shadow: 0 0 0 0 rgba(227,6,19,0.5); } 70% { box-shadow: 0 0 0 14px rgba(227,6,19,0); } 100% { box-shadow: 0 0 0 0 rgba(227,6,19,0); } }
+@keyframes tualitoExcited { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+@keyframes tualitoAlert { 0%, 100% { transform: translateY(0); } 25% { transform: translateY(-4px); } 75% { transform: translateY(2px); } }
+
+/* Badge de notificación */
+.tualito-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 18px;
+  height: 18px;
+  background: var(--accent-orange);
+  border-radius: 50%;
+  border: 2px solid white;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: white;
+}
+.tualito-badge.show { display: flex; }
+
+/* Botón de voz en la mascota (accesibilidad adultos mayores) */
+.tualito-voice-btn {
+  position: absolute;
+  bottom: -2px;
+  left: -12px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #4CAF50;
+  border: 2px solid white;
+  color: white;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(76,175,80,0.4);
+  transition: all 0.2s;
+}
+.tualito-voice-btn:active { transform: scale(0.85); }
+.tualito-voice-btn.recording {
+  background: #f44336;
+  box-shadow: 0 0 0 0 rgba(244,67,54,0.5);
+  animation: tualitoListen 1.2s ease-in-out infinite;
+}
+
+/* ===== CHAT DEDICADO (Pantalla completa) ===== */
 #page-asistente .main-content {
   padding-bottom: 0;
   height: calc(100vh - var(--header-height) - var(--status-bar-height));
@@ -10,109 +169,89 @@
 }
 
 .ai-chat-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-
 .ai-chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
 
-.chat-message { display: flex; flex-direction: column; max-width: 85%; animation: fadeIn 0.3s ease; }
+.chat-message { display: flex; flex-direction: column; max-width: 85%; animation: msgFadeIn 0.3s ease; }
 .chat-message.chat-user { align-self: flex-end; }
 .chat-message.chat-ai { align-self: flex-start; }
+
+@keyframes msgFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
 .chat-bubble { padding: 12px 16px; border-radius: 18px; font-size: 14px; line-height: 1.5; word-wrap: break-word; }
 .chat-bubble-user { background: var(--primary-red); color: white; border-bottom-right-radius: 4px; }
 .chat-bubble-ai { background: white; color: var(--text-primary); border-bottom-left-radius: 4px; box-shadow: var(--shadow-sm); }
 
 .chat-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; padding-left: 4px; }
-.chat-action-btn { padding: 6px 12px; border-radius: 20px; border: 1.5px solid var(--primary-red); background: white; color: var(--primary-red); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+.chat-action-btn {
+  padding: 6px 12px; border-radius: 20px; border: 1.5px solid var(--primary-red);
+  background: white; color: var(--primary-red); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s; white-space: nowrap;
+}
 .chat-action-btn:active { background: var(--primary-red); color: white; transform: scale(0.95); }
 
-.ai-chat-input { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: white; border-top: 1px solid var(--border-color); box-shadow: 0 -2px 10px rgba(0,0,0,0.05); }
-.ai-chat-input input { flex: 1; border: 1.5px solid var(--border-color); border-radius: 24px; padding: 10px 16px; font-size: 14px; outline: none; transition: border-color 0.2s; }
+/* Input del chat */
+.ai-chat-input {
+  display: flex; align-items: center; gap: 8px; padding: 12px 16px;
+  background: white; border-top: 1px solid var(--border-color);
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+}
+.ai-chat-input input {
+  flex: 1; border: 1.5px solid var(--border-color); border-radius: 24px;
+  padding: 10px 16px; font-size: 14px; outline: none; transition: border-color 0.2s;
+}
 .ai-chat-input input:focus { border-color: var(--primary-red); }
 
-.ai-send-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--primary-red); border: none; color: white; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s; }
+.ai-send-btn {
+  width: 40px; height: 40px; border-radius: 50%; background: var(--primary-red);
+  border: none; color: white; font-size: 16px; display: flex; align-items: center;
+  justify-content: center; cursor: pointer; transition: transform 0.2s;
+}
 .ai-send-btn:active { transform: scale(0.9); background: var(--primary-dark-red); }
 
-.ai-voice-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--bg-secondary); border: 2px solid var(--border-color); color: var(--text-secondary); font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+.ai-voice-btn {
+  width: 40px; height: 40px; border-radius: 50%; background: var(--bg-secondary);
+  border: 2px solid var(--border-color); color: var(--text-secondary); font-size: 16px;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;
+}
 .ai-voice-btn:active { transform: scale(0.9); }
-.ai-voice-btn.listening { background: var(--primary-red); border-color: var(--primary-red); color: white; animation: pulse 1.5s infinite; }
+.ai-voice-btn.listening { background: var(--primary-red); border-color: var(--primary-red); color: white; animation: tualitoListen 1.2s ease-in-out infinite; }
 
-@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(227,6,19,0.4); } 70% { box-shadow: 0 0 0 12px rgba(227,6,19,0); } 100% { box-shadow: 0 0 0 0 rgba(227,6,19,0); } }
-
+/* Voice status */
 .ai-voice-status { display: none; align-items: center; justify-content: center; gap: 8px; padding: 8px 16px; background: #FFF0F0; border-radius: 8px; margin: 0 16px 8px; font-size: 12px; color: var(--primary-red); font-weight: 600; }
-.ai-voice-status .voice-wave { display: flex; gap: 2px; align-items: center; }
-.ai-voice-status .voice-wave span { width: 3px; height: 12px; background: var(--primary-red); border-radius: 2px; animation: voiceWave 0.8s ease-in-out infinite; }
-.ai-voice-status .voice-wave span:nth-child(2) { animation-delay: 0.1s; }
-.ai-voice-status .voice-wave span:nth-child(3) { animation-delay: 0.2s; }
-.ai-voice-status .voice-wave span:nth-child(4) { animation-delay: 0.3s; }
+.ai-voice-status.show { display: flex; }
+.voice-wave { display: flex; gap: 2px; align-items: center; }
+.voice-wave span { width: 3px; height: 12px; background: var(--primary-red); border-radius: 2px; animation: voiceWave 0.8s ease-in-out infinite; }
+.voice-wave span:nth-child(2) { animation-delay: 0.1s; }
+.voice-wave span:nth-child(3) { animation-delay: 0.2s; }
+.voice-wave span:nth-child(4) { animation-delay: 0.3s; }
 @keyframes voiceWave { 0%,100% { height: 6px; } 50% { height: 16px; } }
 
-.ai-fab { position: fixed; bottom: 80px; right: 20px; width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-red), #FF6B35); color: white; border: none; font-size: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 16px rgba(227,6,19,0.4); z-index: 900; transition: transform 0.2s; animation: fabBounce 2s ease-in-out infinite; }
-.ai-fab:active { transform: scale(0.9); }
-@keyframes fabBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
-.ai-fab-badge { position: absolute; top: -2px; right: -2px; width: 16px; height: 16px; background: var(--accent-orange); border-radius: 50%; border: 2px solid white; }
-
-.ai-notification { display: none; position: fixed; top: 60px; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); max-width: 400px; background: white; border-radius: 12px; padding: 12px 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); z-index: 9999; align-items: center; gap: 12px; cursor: pointer; animation: slideDown 0.3s ease; border-left: 4px solid var(--accent-orange); }
-@keyframes slideDown { from { transform: translateX(-50%) translateY(-100%); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
-.notif-icon { font-size: 28px; flex-shrink: 0; }
-.notif-content { flex: 1; }
-.notif-title { font-size: 13px; font-weight: 700; }
-.notif-text { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
-.notif-close { background: none; border: none; font-size: 16px; color: var(--text-muted); cursor: pointer; padding: 4px; }
-
+/* AI Header */
 .ai-header-info { display: flex; align-items: center; gap: 10px; }
-.ai-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.ai-avatar-header { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 16px; }
 .ai-header-text { display: flex; flex-direction: column; }
 .ai-header-name { font-size: 14px; font-weight: 700; color: white; }
 .ai-header-status { font-size: 10px; color: rgba(255,255,255,0.8); display: flex; align-items: center; gap: 4px; }
 .ai-header-status::before { content: ''; width: 6px; height: 6px; background: #4CAF50; border-radius: 50%; }
 
-
-
-/* ===== BOTÓN DE VOZ ACCESIBLE (Adultos Mayores) ===== */
-.tuali-voice-fab {
-  position: fixed;
-  bottom: 80px;
-  left: 20px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #4CAF50, #2E7D32);
-  color: white;
-  border: none;
-  font-size: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(76,175,80,0.4);
-  z-index: 900;
-  transition: transform 0.2s;
-}
-.tuali-voice-fab:active { transform: scale(0.9); }
-.tuali-voice-fab.recording { background: linear-gradient(135deg, #f44336, #c62828); animation: pulse 1.5s infinite; box-shadow: 0 4px 16px rgba(244,67,54,0.5); }
-
-/* ===== CONTENEDOR DE ALERTAS ===== */
+/* ===== ALERTAS EN HOME ===== */
 #contenedor-alertas-tuali { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 
 .alerta-tuali {
-  display: flex; align-items: center; gap: 12px;
+  display: flex; align-items: flex-start; gap: 10px;
   padding: 12px 14px; border-radius: 12px;
   font-size: 13px; line-height: 1.4;
-  animation: fadeIn 0.3s ease; position: relative;
+  animation: msgFadeIn 0.3s ease; position: relative;
 }
 .alerta-tuali.alerta-desabasto { background: #FFF3E0; border: 1px solid #FFB74D; color: #E65100; }
 .alerta-tuali.alerta-seguridad { background: #FCE4EC; border: 1px solid #F48FB1; color: #880E4F; }
-.alerta-tuali.alerta-clima { background: #E3F2FD; border: 1px solid #90CAF9; color: #0D47A1; }
 
-.alerta-tuali-icon { font-size: 22px; flex-shrink: 0; }
+.alerta-tuali-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
 .alerta-tuali-content { flex: 1; }
 .alerta-tuali-title { font-weight: 700; font-size: 12px; margin-bottom: 2px; }
 .alerta-tuali-text { font-size: 12px; opacity: 0.9; }
-.alerta-tuali-actions { display: flex; gap: 6px; margin-top: 8px; }
-.alerta-tuali-btn {
-  padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;
-  border: none; cursor: pointer; transition: transform 0.1s;
-}
+.alerta-tuali-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.alerta-tuali-btn { padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; border: none; cursor: pointer; transition: transform 0.1s; }
 .alerta-tuali-btn:active { transform: scale(0.95); }
 .alerta-tuali-btn-confirm { background: #4CAF50; color: white; }
 .alerta-tuali-btn-report { background: #f44336; color: white; }
@@ -120,10 +259,17 @@
 .alerta-tuali-btn-dismiss { background: #E0E0E0; color: #616161; }
 .alerta-tuali-close { position: absolute; top: 6px; right: 8px; background: none; border: none; font-size: 14px; color: inherit; opacity: 0.5; cursor: pointer; }
 
-
-
-/* Typing indicator */
-.typing-dot { width: 8px; height: 8px; background: var(--text-muted); border-radius: 50%; animation: typingBounce 1.2s ease-in-out infinite; }
-.typing-dot:nth-child(2) { animation-delay: 0.2s; }
-.typing-dot:nth-child(3) { animation-delay: 0.4s; }
-@keyframes typingBounce { 0%,100% { transform: translateY(0); opacity: 0.5; } 50% { transform: translateY(-5px); opacity: 1; } }
+/* Notification banner */
+.ai-notification {
+  display: none; position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+  width: calc(100% - 32px); max-width: 400px; background: white; border-radius: 12px;
+  padding: 12px 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); z-index: 9999;
+  align-items: center; gap: 12px; cursor: pointer; animation: slideDown 0.3s ease;
+  border-left: 4px solid var(--accent-orange);
+}
+@keyframes slideDown { from { transform: translateX(-50%) translateY(-100%); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
+.notif-icon { font-size: 28px; flex-shrink: 0; }
+.notif-content { flex: 1; }
+.notif-title { font-size: 13px; font-weight: 700; }
+.notif-text { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+.notif-close { background: none; border: none; font-size: 16px; color: var(--text-muted); cursor: pointer; padding: 4px; }
