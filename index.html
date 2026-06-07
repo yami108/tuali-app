@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Tuali - Arca Continental</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+
+    <!-- ===== LOGIN PAGE ===== -->
+    <div class="page active" id="page-login">
+      <div class="login-page">
+        <div class="login-header">
+          <div class="login-logo">
+            <div class="logo-circle">
+              <i class="fas fa-store"></i>
+            </div>
+            <h1 class="login-brand">tuali</h1>
+            <p class="login-tagline">by Arca Continental</p>
+          </div>
+        </div>
+
+        <div class="login-form">
+          <h2 class="login-title">Bienvenido</h2>
+          <p class="login-subtitle">Ingresa a tu cuenta para gestionar tu tienda</p>
+
+          <div class="login-demo-note">
+            ⚡ <strong>Demo:</strong> Solo presiona "Iniciar Sesion" para entrar
+          </div>
+
+          <div class="input-group">
+            <label class="input-label">Numero de telefono</label>
+            <div class="phone-input">
+              <span class="phone-prefix">+52</span>
+              <input type="tel" class="input-field" placeholder="10 digitos" id="login-phone" value="5512345678">
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label">Codigo de acceso</label>
+            <input type="password" class="input-field" placeholder="Ingresa tu codigo" id="login-code" value="1234" maxlength="6">
+          </div>
+
+          <button class="btn btn-primary btn-full btn-lg" onclick="doLogin()">
+            Iniciar Sesion
+          </button>
+
+          <div class="login-help">
+            <a href="#" class="login-link">¿Olvidaste tu codigo?</a>
+            <a href="#" class="login-link">Solicitar acceso</a>
+          </div>
+        </div>
+
+        <div class="login-footer">
+          <p>&copy; 2024 Arca Continental. Todos los derechos reservados.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== HOME PAGE ===== -->
+    <div class="page" id="page-home">
+      <div class="status-bar">
+        <span class="status-bar-time">9:41</span>
+        <div class="status-bar-icons">
+          <i class="fas fa-signal"></i>
+          <i class="fas fa-wifi"></i>
+          <i class="fas fa-battery-full"></i>
+        </div>
+      </div>
+
+      <div class="app-header">
+        <div>
+          <span style="color: rgba(255,255,255,0.8); font-size: 12px;">Hola, buen dia</span>
+          <h1 class="app-header-title">Tienda Don Carlos</h1>
+        </div>
+        <div class="app-header-actions">
+          <button class="header-icon-btn" onclick="showToast('No hay notificaciones nuevas')">
+            <i class="fas fa-bell"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <div class="page-content">
+
+          <!-- Pedido Sugerido Banner -->
+          <div class="promo-banner">
+            <div class="promo-banner-title">📦 Pedido Sugerido</div>
+            <div class="promo-banner-text">Basado en tus ventas, te recomendamos reabastecer 12 productos esta semana</div>
+            <button class="btn" style="background:white;color:var(--primary-red);font-size:13px;padding:8px 16px;" onclick="navigateTo('catalogo')">
+              Ver pedido sugerido
+            </button>
+          </div>
+
+          <!-- Quick Stats -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon" style="background:#FFF0F0;color:var(--primary-red);">
+                <i class="fas fa-shopping-cart"></i>
+              </div>
+              <div class="stat-value">$4,850</div>
+              <div class="stat-label">Ultimo pedido</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background:#FFF8E5;color:var(--accent-orange);">
+                <i class="fas fa-star"></i>
+              </div>
+              <div class="stat-value">2,340</div>
+              <div class="stat-label">Puntos Tuali</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background:#E8F5E9;color:var(--accent-green);">
+                <i class="fas fa-truck"></i>
+              </div>
+              <div class="stat-value">Lunes</div>
+              <div class="stat-label">Prox. entrega</div>
+            </div>
+          </div>
+
+          <!-- Promociones -->
+          <div class="section-header">
+            <h2 class="section-title">Promociones</h2>
+            <a class="section-link" onclick="navigateTo('catalogo')">Ver todas</a>
+          </div>
+
+          <div class="promos-scroll">
+            <div class="promo-card">
+              <div class="promo-card-badge">-20%</div>
+              <div class="promo-card-img">🥤</div>
+              <div class="promo-card-title">Coca-Cola 600ml</div>
+              <div class="promo-card-desc">Pack 24 unidades</div>
+              <div class="promo-card-price">$189 <span class="promo-card-oldprice">$236</span></div>
+            </div>
+            <div class="promo-card">
+              <div class="promo-card-badge">2x1</div>
+              <div class="promo-card-img">🧃</div>
+              <div class="promo-card-title">Jugos del Valle</div>
+              <div class="promo-card-desc">Surtido 1L</div>
+              <div class="promo-card-price">$45 <span class="promo-card-oldprice">$90</span></div>
+            </div>
+            <div class="promo-card">
+              <div class="promo-card-badge">-15%</div>
+              <div class="promo-card-img">💧</div>
+              <div class="promo-card-title">Ciel 1.5L</div>
+              <div class="promo-card-desc">Pack 12 unidades</div>
+              <div class="promo-card-price">$108 <span class="promo-card-oldprice">$127</span></div>
+            </div>
+            <div class="promo-card">
+              <div class="promo-card-badge">-30%</div>
+              <div class="promo-card-img">⚡</div>
+              <div class="promo-card-title">Monster Energy</div>
+              <div class="promo-card-desc">Pack 12 latas</div>
+              <div class="promo-card-price">$224 <span class="promo-card-oldprice">$320</span></div>
+            </div>
+          </div>
+
+          <!-- Categorias -->
+          <div class="section-header mt-lg">
+            <h2 class="section-title">Categorias</h2>
+          </div>
+
+          <div class="categories-grid">
+            <div class="category-item" onclick="navigateTo('catalogo')">
+              <div class="category-icon" style="background:#FFF0F0;">🥤</div>
+              <span class="category-label">Refrescos</span>
+            </div>
+            <div class="category-item" onclick="navigateTo('catalogo')">
+              <div class="category-icon" style="background:#E3F2FD;">💧</div>
+              <span class="category-label">Aguas</span>
+            </div>
+            <div class="category-item" onclick="navigateTo('catalogo')">
+              <div class="category-icon" style="background:#FFF8E5;">🧃</div>
+              <span class="category-label">Jugos</span>
+            </div>
+            <div class="category-item" onclick="navigateTo('catalogo')">
+              <div class="category-icon" style="background:#E8F5E9;">🍪</div>
+              <span class="category-label">Snacks</span>
+            </div>
+            <div class="category-item" onclick="navigateTo('catalogo')">
+              <div class="category-icon" style="background:#F3E5F5;">⚡</div>
+              <span class="category-label">Energeticas</span>
+            </div>
+            <div class="category-item" onclick="navigateTo('catalogo')">
+              <div class="category-icon" style="background:#ECEFF1;">📦</div>
+              <span class="category-label">Todos</span>
+            </div>
+          </div>
+
+          <!-- Pedir de nuevo -->
+          <div class="section-header mt-lg">
+            <h2 class="section-title">Pedir de nuevo</h2>
+            <a class="section-link" onclick="navigateTo('pedidos')">Historial</a>
+          </div>
+
+          <div class="card">
+            <div class="reorder-item">
+              <span class="reorder-emoji">🥤</span>
+              <div class="reorder-info">
+                <div class="reorder-name">Coca-Cola 600ml x24</div>
+                <div class="reorder-date">Pedido hace 5 dias</div>
+              </div>
+              <button class="btn btn-primary" style="padding:6px 12px;font-size:12px;" onclick="addToCart('Coca-Cola 600ml')">
+                <i class="fas fa-plus"></i> Pedir
+              </button>
+            </div>
+            <div class="reorder-item">
+              <span class="reorder-emoji">💧</span>
+              <div class="reorder-info">
+                <div class="reorder-name">Ciel 1L x12</div>
+                <div class="reorder-date">Pedido hace 5 dias</div>
+              </div>
+              <button class="btn btn-primary" style="padding:6px 12px;font-size:12px;" onclick="addToCart('Ciel 1L')">
+                <i class="fas fa-plus"></i> Pedir
+              </button>
+            </div>
+            <div class="reorder-item">
+              <span class="reorder-emoji">🧃</span>
+              <div class="reorder-info">
+                <div class="reorder-name">Del Valle Durazno 1L x6</div>
+                <div class="reorder-date">Pedido hace 7 dias</div>
+              </div>
+              <button class="btn btn-primary" style="padding:6px 12px;font-size:12px;" onclick="addToCart('Del Valle Durazno 1L')">
+                <i class="fas fa-plus"></i> Pedir
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== CATALOGO PAGE ===== -->
+    <div class="page" id="page-catalogo">
+      <div class="status-bar">
+        <span class="status-bar-time">9:41</span>
+        <div class="status-bar-icons">
+          <i class="fas fa-signal"></i>
+          <i class="fas fa-wifi"></i>
+          <i class="fas fa-battery-full"></i>
+        </div>
+      </div>
+
+      <div class="app-header">
+        <h1 class="app-header-title">Catalogo</h1>
+        <div class="app-header-actions">
+          <button class="header-icon-btn" onclick="navigateTo('carrito')" style="position:relative;">
+            <i class="fas fa-shopping-cart"></i>
+            <span class="cart-badge" id="cart-badge-header">0</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <div class="page-content">
+          <div class="search-bar">
+            <i class="fas fa-search search-bar-icon"></i>
+            <input type="text" placeholder="Buscar productos..." id="search-input" oninput="filterProducts()">
+          </div>
+
+          <div class="filter-chips">
+            <span class="chip active" onclick="filterByCategory('todos', this)">Todos</span>
+            <span class="chip" onclick="filterByCategory('refrescos', this)">Refrescos</span>
+            <span class="chip" onclick="filterByCategory('aguas', this)">Aguas</span>
+            <span class="chip" onclick="filterByCategory('jugos', this)">Jugos</span>
+            <span class="chip" onclick="filterByCategory('snacks', this)">Snacks</span>
+            <span class="chip" onclick="filterByCategory('energeticas', this)">Energeticas</span>
+          </div>
+
+          <div class="products-grid" id="products-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== CARRITO PAGE ===== -->
+    <div class="page" id="page-carrito">
+      <div class="status-bar">
+        <span class="status-bar-time">9:41</span>
+        <div class="status-bar-icons">
+          <i class="fas fa-signal"></i>
+          <i class="fas fa-wifi"></i>
+          <i class="fas fa-battery-full"></i>
+        </div>
+      </div>
+
+      <div class="app-header">
+        <button class="header-icon-btn" onclick="goBack()" style="background:transparent;">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        <h1 class="app-header-title">Mi Pedido</h1>
+        <div style="width:36px;"></div>
+      </div>
+
+      <div class="main-content">
+        <div class="page-content">
+          <div id="cart-items"></div>
+
+          <div id="cart-empty" class="empty-state">
+            <div class="empty-icon">🛒</div>
+            <h3>Tu carrito esta vacio</h3>
+            <p>Agrega productos del catalogo para hacer tu pedido</p>
+            <button class="btn btn-primary" onclick="navigateTo('catalogo')">Ir al catalogo</button>
+          </div>
+
+          <div id="cart-summary" class="cart-summary" style="display:none;">
+            <div class="cart-summary-row">
+              <span>Subtotal</span>
+              <span id="cart-subtotal">$0</span>
+            </div>
+            <div class="cart-summary-row">
+              <span>Descuentos</span>
+              <span class="text-green" id="cart-discount">-$0</span>
+            </div>
+            <div class="cart-summary-row">
+              <span>Envio</span>
+              <span class="text-green">Gratis</span>
+            </div>
+            <div class="cart-summary-divider"></div>
+            <div class="cart-summary-row cart-summary-total">
+              <span>Total</span>
+              <span id="cart-total">$0</span>
+            </div>
+            <div class="cart-delivery">
+              <i class="fas fa-truck"></i>
+              <span>Entrega estimada: <strong>Lunes 10 de junio</strong></span>
+            </div>
+            <button class="btn btn-primary btn-full btn-lg" onclick="confirmOrder()">Confirmar Pedido</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PEDIDOS PAGE ===== -->
+    <div class="page" id="page-pedidos">
+      <div class="status-bar">
+        <span class="status-bar-time">9:41</span>
+        <div class="status-bar-icons">
+          <i class="fas fa-signal"></i>
+          <i class="fas fa-wifi"></i>
+          <i class="fas fa-battery-full"></i>
+        </div>
+      </div>
+
+      <div class="app-header">
+        <h1 class="app-header-title">Mis Pedidos</h1>
+        <div class="app-header-actions">
+          <button class="header-icon-btn"><i class="fas fa-filter"></i></button>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <div class="page-content">
+          <div class="section-header">
+            <h2 class="section-title">En camino</h2>
+          </div>
+
+          <div class="order-card order-active">
+            <div class="order-card-header">
+              <div>
+                <div class="order-number">Pedido #AC-2847</div>
+                <div class="order-date">5 de junio, 2024</div>
+              </div>
+              <span class="badge badge-orange">En camino</span>
+            </div>
+            <div class="order-progress">
+              <div class="order-progress-bar">
+                <div class="order-progress-fill" style="width:66%;"></div>
+              </div>
+              <div class="order-progress-steps">
+                <span class="step-done">Confirmado</span>
+                <span class="step-done">En ruta</span>
+                <span class="step-pending">Entregado</span>
+              </div>
+            </div>
+            <div class="order-items-preview">
+              <span>🥤 Coca-Cola 600ml x24</span>
+              <span>💧 Ciel 1L x12</span>
+              <span>+2 mas</span>
+            </div>
+            <div class="order-card-footer">
+              <span class="order-total">Total: $3,240</span>
+              <button class="btn btn-outline" style="padding:6px 12px;font-size:12px;">Ver detalle</button>
+            </div>
+          </div>
+
+          <div class="section-header mt-lg">
+            <h2 class="section-title">Historial</h2>
+          </div>
+
+          <div class="order-card">
+            <div class="order-card-header">
+              <div>
+                <div class="order-number">Pedido #AC-2831</div>
+                <div class="order-date">29 de mayo, 2024</div>
+              </div>
+              <span class="badge badge-green">Entregado</span>
+            </div>
+            <div class="order-items-preview">
+              <span>🥤 Coca-Cola 2L x12</span>
+              <span>🧃 Del Valle x6</span>
+              <span>🍪 Bokados x10</span>
+            </div>
+            <div class="order-card-footer">
+              <span class="order-total">Total: $4,850</span>
+              <button class="btn btn-outline" style="padding:6px 12px;font-size:12px;" onclick="showToast('Productos agregados al carrito')">
+                <i class="fas fa-redo"></i> Repetir
+              </button>
+            </div>
+          </div>
+
+          <div class="order-card">
+            <div class="order-card-header">
+              <div>
+                <div class="order-number">Pedido #AC-2815</div>
+                <div class="order-date">22 de mayo, 2024</div>
+              </div>
+              <span class="badge badge-green">Entregado</span>
+            </div>
+            <div class="order-items-preview">
+              <span>🥤 Fanta 600ml x24</span>
+              <span>💧 Ciel 500ml x24</span>
+            </div>
+            <div class="order-card-footer">
+              <span class="order-total">Total: $2,680</span>
+              <button class="btn btn-outline" style="padding:6px 12px;font-size:12px;" onclick="showToast('Productos agregados al carrito')">
+                <i class="fas fa-redo"></i> Repetir
+              </button>
+            </div>
+          </div>
+
+          <div class="order-card">
+            <div class="order-card-header">
+              <div>
+                <div class="order-number">Pedido #AC-2798</div>
+                <div class="order-date">15 de mayo, 2024</div>
+              </div>
+              <span class="badge badge-green">Entregado</span>
+            </div>
+            <div class="order-items-preview">
+              <span>🥤 Coca-Cola 600ml x48</span>
+              <span>⚡ Monster x12</span>
+            </div>
+            <div class="order-card-footer">
+              <span class="order-total">Total: $5,120</span>
+              <button class="btn btn-outline" style="padding:6px 12px;font-size:12px;" onclick="showToast('Productos agregados al carrito')">
+                <i class="fas fa-redo"></i> Repetir
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== RECOMPENSAS PAGE ===== -->
+    <div class="page" id="page-recompensas">
+      <div class="status-bar">
+        <span class="status-bar-time">9:41</span>
+        <div class="status-bar-icons">
+          <i class="fas fa-signal"></i>
+          <i class="fas fa-wifi"></i>
+          <i class="fas fa-battery-full"></i>
+        </div>
+      </div>
+
+      <div class="app-header">
+        <h1 class="app-header-title">Recompensas</h1>
+        <div class="app-header-actions">
+          <button class="header-icon-btn"><i class="fas fa-gift"></i></button>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <div class="page-content">
+          <div class="rewards-hero">
+            <div class="rewards-hero-bg"></div>
+            <div class="rewards-points">
+              <span class="rewards-points-label">Tus puntos Tuali</span>
+              <span class="rewards-points-value">2,340</span>
+              <span class="rewards-points-sublabel">Nivel: Oro ⭐</span>
+            </div>
+            <div class="rewards-progress-section">
+              <div class="rewards-progress-text">
+                <span>660 puntos para nivel Platino</span>
+              </div>
+              <div class="progress-bar" style="background:rgba(255,255,255,0.3);">
+                <div class="progress-bar-fill" style="width:78%;background:white;"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-header mt-lg">
+            <h2 class="section-title">Como ganar puntos</h2>
+          </div>
+
+          <div class="earn-grid">
+            <div class="earn-card">
+              <div class="earn-icon">🛒</div>
+              <div class="earn-text">Por cada $100 de compra</div>
+              <div class="earn-points">+10 pts</div>
+            </div>
+            <div class="earn-card">
+              <div class="earn-icon">📅</div>
+              <div class="earn-text">Pedido semanal consecutivo</div>
+              <div class="earn-points">+50 pts</div>
+            </div>
+            <div class="earn-card">
+              <div class="earn-icon">🎯</div>
+              <div class="earn-text">Completar reto mensual</div>
+              <div class="earn-points">+200 pts</div>
+            </div>
+          </div>
+
+          <div class="section-header mt-lg">
+            <h2 class="section-title">Canjear puntos</h2>
+            <a class="section-link">Ver todo</a>
+          </div>
+
+          <div class="rewards-catalog">
+            <div class="reward-item">
+              <div class="reward-img">🎁</div>
+              <div class="reward-info">
+                <div class="reward-name">Descuento $50 en tu pedido</div>
+                <div class="reward-cost"><i class="fas fa-star" style="color:var(--accent-gold);"></i> 500 puntos</div>
+              </div>
+              <button class="btn btn-primary" style="padding:6px 12px;font-size:11px;">Canjear</button>
+            </div>
+            <div class="reward-item">
+              <div class="reward-img">🧢</div>
+              <div class="reward-info">
+                <div class="reward-name">Gorra Coca-Cola edicion especial</div>
+                <div class="reward-cost"><i class="fas fa-star" style="color:var(--accent-gold);"></i> 1,200 puntos</div>
+              </div>
+              <button class="btn btn-primary" style="padding:6px 12px;font-size:11px;">Canjear</button>
+            </div>
+            <div class="reward-item">
+              <div class="reward-img">🧊</div>
+              <div class="reward-info">
+                <div class="reward-name">Hielera Arca Continental</div>
+                <div class="reward-cost"><i class="fas fa-star" style="color:var(--accent-gold);"></i> 3,000 puntos</div>
+              </div>
+              <button class="btn btn-outline" style="padding:6px 12px;font-size:11px;">Te faltan 660 pts</button>
+            </div>
+            <div class="reward-item">
+              <div class="reward-img">📱</div>
+              <div class="reward-info">
+                <div class="reward-name">Recarga telefonica $100</div>
+                <div class="reward-cost"><i class="fas fa-star" style="color:var(--accent-gold);"></i> 800 puntos</div>
+              </div>
+              <button class="btn btn-primary" style="padding:6px 12px;font-size:11px;">Canjear</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PERFIL PAGE ===== -->
+    <div class="page" id="page-perfil">
+      <div class="status-bar">
+        <span class="status-bar-time">9:41</span>
+        <div class="status-bar-icons">
+          <i class="fas fa-signal"></i>
+          <i class="fas fa-wifi"></i>
+          <i class="fas fa-battery-full"></i>
+        </div>
+      </div>
+
+      <div class="app-header">
+        <h1 class="app-header-title">Mi Tienda</h1>
+        <div class="app-header-actions">
+          <button class="header-icon-btn"><i class="fas fa-cog"></i></button>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <div class="page-content">
+          <div class="profile-header">
+            <div class="avatar avatar-lg">DC</div>
+            <div class="profile-info">
+              <h2 class="profile-name">Tienda Don Carlos</h2>
+              <p class="profile-id">ID Cliente: AC-MX-48291</p>
+              <span class="badge badge-green">Activo</span>
+            </div>
+          </div>
+
+          <div class="card mt-lg">
+            <div class="card-title">Informacion de la tienda</div>
+            <div class="profile-detail">
+              <i class="fas fa-map-marker-alt"></i>
+              <span>Av. Insurgentes Sur 1234, Col. Centro, CDMX</span>
+            </div>
+            <div class="profile-detail">
+              <i class="fas fa-phone"></i>
+              <span>+52 55 1234 5678</span>
+            </div>
+            <div class="profile-detail">
+              <i class="fas fa-calendar"></i>
+              <span>Cliente desde: Marzo 2021</span>
+            </div>
+            <div class="profile-detail">
+              <i class="fas fa-truck"></i>
+              <span>Dia de entrega: Lunes y Jueves</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Resumen del mes</div>
+            <div class="profile-stats">
+              <div>
+                <div class="profile-stat-value">$18,450</div>
+                <div class="profile-stat-label">Compras del mes</div>
+              </div>
+              <div>
+                <div class="profile-stat-value">8</div>
+                <div class="profile-stat-label">Pedidos</div>
+              </div>
+              <div>
+                <div class="profile-stat-value">Oro</div>
+                <div class="profile-stat-label">Nivel</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="profile-menu-item">
+              <div class="profile-menu-icon"><i class="fas fa-file-invoice"></i></div>
+              <span>Mis facturas</span>
+              <i class="fas fa-chevron-right" style="color:var(--text-muted);"></i>
+            </div>
+            <div class="profile-menu-item">
+              <div class="profile-menu-icon"><i class="fas fa-credit-card"></i></div>
+              <span>Metodos de pago</span>
+              <i class="fas fa-chevron-right" style="color:var(--text-muted);"></i>
+            </div>
+            <div class="profile-menu-item">
+              <div class="profile-menu-icon"><i class="fas fa-headset"></i></div>
+              <span>Soporte y ayuda</span>
+              <i class="fas fa-chevron-right" style="color:var(--text-muted);"></i>
+            </div>
+            <div class="profile-menu-item">
+              <div class="profile-menu-icon"><i class="fas fa-shield-alt"></i></div>
+              <span>Privacidad y seguridad</span>
+              <i class="fas fa-chevron-right" style="color:var(--text-muted);"></i>
+            </div>
+            <div class="profile-menu-item" onclick="logout()">
+              <div class="profile-menu-icon" style="color:var(--primary-red);"><i class="fas fa-sign-out-alt"></i></div>
+              <span style="color:var(--primary-red);">Cerrar sesion</span>
+              <i class="fas fa-chevron-right" style="color:var(--primary-red);"></i>
+            </div>
+          </div>
+
+          <p class="text-center text-muted" style="font-size:11px;margin-top:16px;">
+            Tuali v2.4.1 &middot; Arca Continental &copy; 2024
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== BOTTOM NAVIGATION ===== -->
+    <nav class="bottom-nav" id="bottom-nav" style="display:none;">
+      <div class="nav-item active" onclick="navigateTo('home')">
+        <i class="fas fa-home nav-item-icon"></i>
+        <span class="nav-item-label">Inicio</span>
+      </div>
+      <div class="nav-item" onclick="navigateTo('catalogo')">
+        <i class="fas fa-th-large nav-item-icon"></i>
+        <span class="nav-item-label">Catalogo</span>
+      </div>
+      <div class="nav-item" onclick="navigateTo('pedidos')">
+        <i class="fas fa-box nav-item-icon"></i>
+        <span class="nav-item-label">Pedidos</span>
+      </div>
+      <div class="nav-item" onclick="navigateTo('recompensas')">
+        <i class="fas fa-gift nav-item-icon"></i>
+        <span class="nav-item-label">Premios</span>
+      </div>
+      <div class="nav-item" onclick="navigateTo('perfil')">
+        <i class="fas fa-user nav-item-icon"></i>
+        <span class="nav-item-label">Perfil</span>
+      </div>
+    </nav>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

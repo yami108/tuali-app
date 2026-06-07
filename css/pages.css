@@ -1,0 +1,127 @@
+/* ===== LOGIN PAGE ===== */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, var(--primary-red) 0%, var(--primary-dark-red) 40%, var(--bg-primary) 40%);
+}
+.login-header { flex: 0 0 auto; padding: 60px 32px 50px; text-align: center; }
+.logo-circle { width: 80px; height: 80px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 36px; color: white; margin: 0 auto 16px; border: 2px solid rgba(255,255,255,0.3); }
+.login-brand { font-size: 42px; font-weight: 800; color: white; letter-spacing: -1px; }
+.login-tagline { font-size: 12px; color: rgba(255,255,255,0.8); margin-top: 4px; }
+.login-form { flex: 1; background: var(--bg-primary); border-radius: 32px 32px 0 0; padding: 32px 24px; margin-top: -20px; }
+.login-title { font-size: 24px; font-weight: 800; margin-bottom: 4px; }
+.login-subtitle { font-size: 14px; color: var(--text-secondary); margin-bottom: 32px; }
+.phone-input { display: flex; align-items: center; border: 1.5px solid var(--border-color); border-radius: 12px; overflow: hidden; }
+.phone-prefix { padding: 12px; background: var(--bg-secondary); font-weight: 600; color: var(--text-secondary); font-size: 14px; border-right: 1px solid var(--border-color); }
+.phone-input .input-field { border: none; border-radius: 0; }
+.login-help { display: flex; justify-content: space-between; margin-top: 24px; }
+.login-link { font-size: 12px; color: var(--primary-red); text-decoration: none; font-weight: 600; }
+.login-footer { padding: 16px; text-align: center; }
+.login-footer p { font-size: 10px; color: var(--text-muted); }
+.login-demo-note { background: #FFF8E5; border: 1px solid #FFE0B2; border-radius: 8px; padding: 12px; margin-bottom: 16px; text-align: center; font-size: 12px; color: #E65100; }
+
+/* ===== HOME PAGE ===== */
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+.stat-card { background: var(--bg-card); border-radius: 12px; padding: 12px; text-align: center; box-shadow: var(--shadow-sm); }
+.stat-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; font-size: 14px; }
+.stat-value { font-size: 14px; font-weight: 700; }
+.stat-label { font-size: 10px; color: var(--text-secondary); margin-top: 2px; }
+
+.promos-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+.promo-card { min-width: 150px; background: var(--bg-card); border-radius: 12px; padding: 12px; box-shadow: var(--shadow-sm); scroll-snap-align: start; position: relative; flex-shrink: 0; }
+.promo-card-badge { position: absolute; top: 8px; right: 8px; background: var(--primary-red); color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+.promo-card-img { font-size: 40px; text-align: center; margin-bottom: 8px; }
+.promo-card-title { font-size: 12px; font-weight: 600; }
+.promo-card-desc { font-size: 10px; color: var(--text-secondary); margin: 2px 0; }
+.promo-card-price { font-size: 14px; font-weight: 700; color: var(--primary-red); margin-top: 4px; }
+.promo-card-oldprice { font-size: 10px; color: var(--text-muted); text-decoration: line-through; }
+
+.categories-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+.category-item { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+.category-icon { width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; transition: transform 0.2s; }
+.category-item:active .category-icon { transform: scale(0.9); }
+.category-label { font-size: 10px; font-weight: 600; color: var(--text-secondary); }
+
+.reorder-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
+.reorder-item:last-child { border-bottom: none; }
+.reorder-emoji { font-size: 28px; }
+.reorder-info { flex: 1; }
+.reorder-name { font-size: 14px; font-weight: 600; }
+.reorder-date { font-size: 10px; color: var(--text-muted); }
+
+/* ===== CATALOGO ===== */
+.filter-chips { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0; -webkit-overflow-scrolling: touch; }
+.filter-chips::-webkit-scrollbar { display: none; }
+.products-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 12px; }
+.cart-badge { position: absolute; top: -4px; right: -4px; width: 18px; height: 18px; background: var(--accent-orange); color: white; font-size: 10px; font-weight: 700; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+/* ===== CARRITO ===== */
+.cart-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-card); border-radius: 12px; margin-bottom: 8px; box-shadow: var(--shadow-sm); }
+.cart-item-img { font-size: 32px; width: 50px; text-align: center; }
+.cart-item-info { flex: 1; }
+.cart-item-name { font-size: 14px; font-weight: 600; }
+.cart-item-price { font-size: 12px; color: var(--primary-red); font-weight: 700; }
+.cart-item-remove { color: var(--text-muted); font-size: 18px; cursor: pointer; padding: 8px; }
+.cart-item-remove:active { color: var(--primary-red); }
+.cart-summary { background: var(--bg-card); border-radius: 16px; padding: 20px; margin-top: 20px; box-shadow: var(--shadow-md); }
+.cart-summary-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; color: var(--text-secondary); }
+.cart-summary-total { font-weight: 700; font-size: 18px; color: var(--text-primary); }
+.cart-summary-divider { height: 1px; background: var(--border-color); margin: 8px 0; }
+.cart-delivery { display: flex; align-items: center; gap: 8px; padding: 12px; background: #E8F5E9; border-radius: 8px; margin: 16px 0; font-size: 12px; color: var(--accent-green); }
+.empty-state { text-align: center; padding: 48px 24px; }
+.empty-icon { font-size: 64px; margin-bottom: 16px; }
+.empty-state h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+.empty-state p { color: var(--text-secondary); font-size: 14px; margin-bottom: 24px; }
+
+/* ===== PEDIDOS ===== */
+.order-card { background: var(--bg-card); border-radius: 12px; padding: 16px; box-shadow: var(--shadow-sm); margin-bottom: 12px; }
+.order-card.order-active { border-left: 4px solid var(--accent-orange); }
+.order-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.order-number { font-size: 14px; font-weight: 700; }
+.order-date { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+.order-progress { margin-bottom: 12px; }
+.order-progress-bar { height: 6px; background: var(--bg-secondary); border-radius: 3px; margin-bottom: 8px; }
+.order-progress-fill { height: 100%; background: var(--accent-orange); border-radius: 3px; }
+.order-progress-steps { display: flex; justify-content: space-between; font-size: 10px; }
+.step-done { color: var(--accent-orange); font-weight: 600; }
+.step-pending { color: var(--text-muted); }
+.order-items-preview { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; font-size: 12px; color: var(--text-secondary); }
+.order-card-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid var(--border-color); }
+.order-total { font-weight: 700; }
+
+/* ===== RECOMPENSAS ===== */
+.rewards-hero { background: linear-gradient(135deg, var(--primary-red), #FF6B35); border-radius: 16px; padding: 24px; color: white; position: relative; overflow: hidden; }
+.rewards-hero-bg { position: absolute; top: -50px; right: -50px; width: 150px; height: 150px; background: rgba(255,255,255,0.1); border-radius: 50%; }
+.rewards-points { text-align: center; margin-bottom: 20px; }
+.rewards-points-label { display: block; font-size: 12px; opacity: 0.9; }
+.rewards-points-value { display: block; font-size: 48px; font-weight: 800; line-height: 1.2; }
+.rewards-points-sublabel { display: block; font-size: 12px; opacity: 0.85; margin-top: 4px; }
+.rewards-progress-section { position: relative; z-index: 1; }
+.rewards-progress-text { display: flex; justify-content: center; font-size: 10px; opacity: 0.9; margin-bottom: 8px; }
+.earn-grid { display: flex; flex-direction: column; gap: 8px; }
+.earn-card { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow-sm); }
+.earn-icon { font-size: 24px; }
+.earn-text { flex: 1; font-size: 12px; color: var(--text-secondary); }
+.earn-points { font-size: 12px; font-weight: 700; color: var(--accent-green); }
+.rewards-catalog { display: flex; flex-direction: column; gap: 8px; }
+.reward-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow-sm); }
+.reward-img { font-size: 28px; width: 44px; text-align: center; }
+.reward-info { flex: 1; }
+.reward-name { font-size: 12px; font-weight: 600; }
+.reward-cost { font-size: 10px; color: var(--text-secondary); margin-top: 2px; }
+
+/* ===== PERFIL ===== */
+.profile-header { display: flex; align-items: center; gap: 16px; padding: 20px 0; }
+.profile-info { flex: 1; }
+.profile-name { font-size: 20px; font-weight: 700; }
+.profile-id { font-size: 12px; color: var(--text-muted); margin: 2px 0 4px; }
+.profile-detail { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; font-size: 12px; color: var(--text-secondary); }
+.profile-detail i { color: var(--primary-red); width: 16px; text-align: center; margin-top: 2px; }
+.profile-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; padding-top: 8px; }
+.profile-stat-value { font-size: 18px; font-weight: 700; color: var(--primary-red); }
+.profile-stat-label { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+.profile-menu-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-color); cursor: pointer; font-size: 14px; font-weight: 500; }
+.profile-menu-item:last-child { border-bottom: none; }
+.profile-menu-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 14px; }
+.profile-menu-item span { flex: 1; }
