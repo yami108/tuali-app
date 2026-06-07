@@ -493,11 +493,15 @@ def tuali_chat():
     Body: { "message": "texto del usuario", "context": "contexto adicional" }
     """
     data = request.get_json()
-    if not data or 'message' not in data:
-        return jsonify({"error": "Se requiere campo 'message'"}), 400
+    if not data:
+        return jsonify({"error": "Se requiere un cuerpo JSON válido."}), 400
 
-    user_message = data['message']
-    context = data.get('context', '')
+    # Aceptar tanto 'message' como 'mensaje' del frontend
+    user_message = data.get('message') or data.get('mensaje', '')
+    if not user_message:
+        return jsonify({"error": "Se requiere campo 'message' o 'mensaje'."}), 400
+
+    context = data.get('context', '') or data.get('contexto_pantalla', '')
 
     # Llamar a Gemini (o fallback local)
     response = call_gemini(user_message, context)

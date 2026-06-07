@@ -196,17 +196,25 @@ document.addEventListener("DOMContentLoaded", () => {
     const botonMicrofonoChat = document.getElementById("btn-tuali-microfono");
 
     if (botonMicrofonoChat) {
-        botonMicrofonoChat.addEventListener("click", () => {
+        botonMicrofonoChat.addEventListener("click", (e) => {
+            e.stopPropagation(); // Evita conflictos con eventos globales del DOM
+
             if (!escuchaActiva) {
                 escuchaActiva = true;
-                receptorVoz.start();
-                botonMicrofonoChat.style.backgroundColor = "#28a745";
-                console.log("Micrófono del chat activado por el usuario.");
+                try {
+                    receptorVoz.start();
+                    botonMicrofonoChat.style.backgroundColor = "#28a745"; // Color verde de actividad
+                    botonMicrofonoChat.style.transform = "scale(1.05)";
+                    console.log("Escucha activa inicializada desde el panel de chat.");
+                } catch (error) {
+                    console.error("El flujo de audio ya se encuentra inicializado:", error);
+                }
             } else {
                 escuchaActiva = false;
                 receptorVoz.stop();
-                botonMicrofonoChat.style.backgroundColor = "#e3120b";
-                console.log("Micrófono del chat desactivado por el usuario.");
+                botonMicrofonoChat.style.backgroundColor = "#e3120b"; // Retorno al rojo institucional
+                botonMicrofonoChat.style.transform = "scale(1)";
+                console.log("Escucha activa finalizada por el usuario.");
             }
         });
     }

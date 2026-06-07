@@ -173,14 +173,16 @@
                 <strong>Tualito:</strong> Saludos. ¿En qué puedo asistirle el día de hoy con la gestión de su negocio?
             </div>
         </div>
-        <!-- Controles de Entrada Actualizados (Texto, Micrófono y Enviar) -->
-        <div style="padding: 10px; border-top: 1px solid #ddd; display: flex; gap: 10px; background-color: white; align-items: center;">
-            <input type="text" id="input-tuali-texto" placeholder="Escriba su consulta aquí..." style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
-            <!-- Botón de Micrófono Institucional -->
-            <button id="btn-tuali-microfono" style="background-color: #e3120b; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: background-color 0.3s;">
-                🎤
+        <!-- Controles de Entrada Formales con Icono SVG -->
+        <div style="padding: 12px; border-top: 1px solid #e0e0e0; display: flex; gap: 10px; background-color: #ffffff; align-items: center;">
+            <input type="text" id="input-tuali-texto" placeholder="Escriba su consulta aquí..." style="flex: 1; padding: 10px; border: 1px solid #cccccc; border-radius: 6px; font-family: Arial, sans-serif; font-size: 14px;">
+            <!-- Botón de Micrófono Estilizado con Forma SVG -->
+            <button id="btn-tuali-microfono" style="background-color: #e3120b; color: white; border: none; width: 42px; height: 42px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background-color 0.3s, transform 0.1s; box-shadow: 0 2px 5px rgba(0,0,0,0.15);" title="Activar dictado por voz">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 20px; height: 20px;">
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+                </svg>
             </button>
-            <button id="btn-tuali-enviar" style="background-color: #e3120b; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; height: 40px;">Enviar</button>
+            <button id="btn-tuali-enviar" style="background-color: #e3120b; color: white; border: none; padding: 0 18px; border-radius: 6px; font-weight: bold; cursor: pointer; height: 42px; font-size: 14px;">Enviar</button>
         </div>
     </div>
 
