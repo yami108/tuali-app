@@ -47,14 +47,22 @@ function navigateTo(page) {
   if (pageIndex >= 0 && navItems[pageIndex]) navItems[pageIndex].classList.add('active');
 
   const bottomNav = document.getElementById('bottom-nav');
-  if (page === 'login' || page === 'carrito') {
+  const aiFab = document.getElementById('ai-fab');
+
+  if (page === 'login') {
     bottomNav.style.display = 'none';
+    if (aiFab) aiFab.style.display = 'none';
+  } else if (page === 'carrito' || page === 'asistente') {
+    bottomNav.style.display = 'none';
+    if (aiFab) aiFab.style.display = 'none';
   } else {
     bottomNav.style.display = 'flex';
+    if (aiFab) aiFab.style.display = 'flex';
   }
 
   if (page === 'catalogo') renderProducts();
   if (page === 'carrito') renderCart();
+  if (page === 'asistente') initAI();
   currentPage = page;
 }
 

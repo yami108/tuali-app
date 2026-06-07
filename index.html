@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/pages.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/ai-assistant.css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
@@ -659,6 +660,63 @@
       </div>
     </div>
 
+    <!-- ===== ASISTENTE IA PAGE ===== -->
+    <div class="page" id="page-asistente">
+      <div class="status-bar">
+        <span class="status-bar-time">9:41</span>
+        <div class="status-bar-icons">
+          <i class="fas fa-signal"></i>
+          <i class="fas fa-wifi"></i>
+          <i class="fas fa-battery-full"></i>
+        </div>
+      </div>
+
+      <div class="app-header">
+        <div class="ai-header-info">
+          <div class="ai-avatar">🤖</div>
+          <div class="ai-header-text">
+            <span class="ai-header-name">Asistente Tuali</span>
+            <span class="ai-header-status">En linea</span>
+          </div>
+        </div>
+        <div class="app-header-actions">
+          <button class="header-icon-btn" onclick="navigateTo('home')" style="background:transparent;">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <div class="ai-chat-container">
+          <div class="ai-chat-messages" id="ai-chat-messages"></div>
+
+          <div class="ai-voice-status" id="ai-voice-status">
+            <div class="voice-wave"><span></span><span></span><span></span><span></span></div>
+            <span>Escuchando...</span>
+          </div>
+
+          <div class="ai-chat-input">
+            <button class="ai-voice-btn" id="ai-voice-btn" onclick="toggleVoice()">
+              <i class="fas fa-microphone"></i>
+            </button>
+            <input type="text" id="ai-input" placeholder="Escribe o habla..." onkeypress="if(event.key==='Enter')sendAIMessage()">
+            <button class="ai-send-btn" onclick="sendAIMessage()">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Floating Button -->
+    <button class="ai-fab" id="ai-fab" style="display:none;" onclick="navigateTo('asistente')">
+      🤖
+      <div class="ai-fab-badge"></div>
+    </button>
+
+    <!-- AI Notification -->
+    <div class="ai-notification" id="ai-notification"></div>
+
     <!-- ===== BOTTOM NAVIGATION ===== -->
     <nav class="bottom-nav" id="bottom-nav" style="display:none;">
       <div class="nav-item active" onclick="navigateTo('home')">
@@ -688,5 +746,6 @@
   </div>
 
   <script src="js/app.js"></script>
+  <script src="js/ai-assistant.js"></script>
 </body>
 </html>
