@@ -1,478 +1,181 @@
 /* ============================================
-   TUALITO - Mascota Virtual Flotante
-   Asistente IA persistente para Tuali
+   TUALITO AI - Chat estilo ChatGPT
+   Colores: Rojo Arca Continental + Blanco
    ============================================ */
 
-/* ===== TUALITO WIDGET (Persistente en TODAS las pantallas) ===== */
-.tualito-widget,
-.mascota-contenedor {
+/* ===== BOTÓN FLOTANTE DE TUALITO (esquina derecha) ===== */
+#tualito-boton {
   position: fixed;
-  bottom: 80px;
-  right: 16px;
-  z-index: 9999;
-  display: none;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-  transition: all 0.3s ease;
-  pointer-events: auto;
-}
-.tualito-widget.visible,
-.mascota-contenedor { display: flex; }
-
-/* Asegurar que la mascota NO bloquea inputs debajo */
-#tuali-mascota-global {
-  position: fixed;
-  bottom: 80px;
-  right: 16px;
-  z-index: 9999;
-  pointer-events: auto;
-}
-#tuali-mascota-global * {
-  pointer-events: auto;
-}
-
-/* Asset imagen de la corcholata */
-#tuali-asset {
-  width: 62px;
-  height: 62px;
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(227,6,19,0.35);
-  transition: transform 0.2s;
-  object-fit: cover;
-}
-#tuali-asset:hover { transform: scale(1.05); }
-#tuali-asset:active { transform: scale(0.9); }
-
-/* Fallback visual si la imagen no carga */
-.corcholata-fallback {
-  width: 62px;
-  height: 62px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #FF3B30, #B8050F);
-  border: 3px solid #8B0000;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(227,6,19,0.35), inset 0 -3px 6px rgba(0,0,0,0.2);
-  outline: 2px dashed rgba(255,255,255,0.3);
-  outline-offset: -6px;
-  transition: transform 0.2s;
-}
-.corcholata-fallback:hover { transform: scale(1.05); }
-.corcholata-fallback:active { transform: scale(0.9); }
-.corcholata-fallback .corcholata-eyes { display: flex; gap: 8px; }
-.corcholata-fallback .corcholata-eyes span { font-size: 10px; color: white; text-shadow: 0 0 4px rgba(255,255,255,0.8); }
-.corcholata-fallback .corcholata-mouth { font-size: 14px; color: white; font-weight: 700; line-height: 1; }
-
-/* Bocadillo formal (globo de diálogo) */
-#tuali-bocadillo,
-.bocadillo-formal {
-  position: absolute;
-  bottom: 72px;
-  right: 0;
-  background: #FFFFFF;
-  border: 1px solid #E0E0E0;
-  border-radius: 12px;
-  padding: 12px 16px;
-  max-width: 260px;
-  min-width: 180px;
-  font-size: 13px;
-  line-height: 1.5;
-  color: #1A1A2E;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-  pointer-events: auto;
-  z-index: 10000;
-  word-wrap: break-word;
-}
-#tuali-bocadillo::after,
-.bocadillo-formal::after {
-  content: '';
-  position: absolute;
-  bottom: -7px;
-  right: 22px;
-  width: 12px;
-  height: 12px;
-  background: #FFFFFF;
-  border-right: 1px solid #E0E0E0;
-  border-bottom: 1px solid #E0E0E0;
-  transform: rotate(45deg);
-}
-
-/* Estado de grabación activa */
-#tuali-mascota-global.grabando-active #tuali-asset,
-#tuali-mascota-global.grabando-active .corcholata-fallback {
-  box-shadow: 0 0 0 0 rgba(227,6,19,0.6);
-  animation: tualitoListen 1.2s ease-in-out infinite;
-}
-
-/* Burbuja de contexto (tooltip estilizado) */
-.tualito-bubble {
-  background: white;
-  border-radius: 16px 16px 4px 16px;
-  padding: 12px 14px;
-  max-width: 230px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--text-primary);
-  position: relative;
-  animation: bubbleFadeIn 0.4s ease;
-  cursor: pointer;
-  border: 1px solid var(--border-color);
-  display: none;
-}
-.tualito-bubble.show { display: block; }
-
-.tualito-bubble::after {
-  content: '';
-  position: absolute;
-  bottom: -6px;
+  bottom: 90px;
   right: 20px;
-  width: 12px;
-  height: 12px;
-  background: white;
-  border-right: 1px solid var(--border-color);
-  border-bottom: 1px solid var(--border-color);
-  transform: rotate(45deg);
-}
-
-.tualito-bubble-close {
-  position: absolute;
-  top: 4px;
-  right: 8px;
-  background: none;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #E30613, #B8050F);
   border: none;
-  font-size: 12px;
-  color: var(--text-muted);
   cursor: pointer;
-  padding: 2px;
-}
-
-.tualito-bubble-text { font-size: 12px; font-weight: 500; }
-.tualito-bubble-text strong { color: var(--primary-red); }
-
-.tualito-bubble-action {
-  display: inline-block;
-  margin-top: 6px;
-  padding: 4px 10px;
-  background: var(--primary-red);
-  color: white;
-  border-radius: 12px;
-  font-size: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  transition: transform 0.1s;
-}
-.tualito-bubble-action:active { transform: scale(0.95); }
-
-@keyframes bubbleFadeIn {
-  from { opacity: 0; transform: translateY(8px) scale(0.9); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-/* Mascota Avatar - CORCHOLATA RETRO */
-.tualito-avatar {
-  width: 62px;
-  height: 62px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #FF3B30, #B8050F);
-  display: flex;
+  z-index: 9000;
+  display: none; /* Se muestra tras login */
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(227,6,19,0.35), inset 0 -3px 6px rgba(0,0,0,0.2), inset 0 2px 4px rgba(255,255,255,0.3);
-  transition: transform 0.2s, box-shadow 0.2s;
-  position: relative;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-  /* Bordes dentados de corcholata */
-  border: 3px solid #8B0000;
-  outline: 2px dashed rgba(255,255,255,0.3);
-  outline-offset: -6px;
+  box-shadow: 0 4px 20px rgba(227,6,19,0.4);
+  transition: transform 0.2s;
 }
-.tualito-avatar:active { transform: scale(0.9); }
-
-/* Cara de la corcholata */
-.corcholata-face { display: flex; flex-direction: column; align-items: center; gap: 1px; }
-.corcholata-eyes { display: flex; gap: 8px; }
-.corcholata-eye { font-size: 10px; color: white; text-shadow: 0 0 4px rgba(255,255,255,0.8); }
-.corcholata-mouth { font-size: 14px; color: white; font-weight: 700; line-height: 1; margin-top: -1px; }
-
-/* Mini corcholata para el header del chat */
-.corcholata-mini {
-  width: 28px; height: 28px; border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #FF3B30, #B8050F);
-  border: 2px solid #8B0000;
-  display: flex; align-items: center; justify-content: center;
-  color: white; font-size: 12px; font-weight: 800;
-  box-shadow: inset 0 -2px 4px rgba(0,0,0,0.2);
+#tualito-boton:active { transform: scale(0.9); }
+#tualito-boton img {
+  width: 40px; height: 40px; border-radius: 50%; object-fit: cover;
+}
+#tualito-boton .tualito-fallback {
+  color: white; font-size: 28px;
 }
 
-/* Clase de grabación activa en la mascota global */
-.tualito-widget.grabando-active .tualito-avatar {
-  box-shadow: 0 0 0 0 rgba(227,6,19,0.6), 0 4px 16px rgba(227,6,19,0.5);
-  animation: tualitoListen 1.2s ease-in-out infinite;
-}
-#tuali-mascota-global.grabando-active .tualito-avatar {
-  box-shadow: 0 0 0 0 rgba(227,6,19,0.6), 0 4px 16px rgba(227,6,19,0.5);
-  animation: tualitoListen 1.2s ease-in-out infinite;
-}
-
-/* Estados animados de Tualito */
-.tualito-avatar.idle { animation: tualitoBreathe 3s ease-in-out infinite; }
-.tualito-avatar.thinking { animation: tualitoThink 0.8s ease-in-out infinite; }
-.tualito-avatar.listening { animation: tualitoListen 1.2s ease-in-out infinite; box-shadow: 0 0 0 0 rgba(227,6,19,0.4); }
-.tualito-avatar.excited { animation: tualitoExcited 0.5s ease-in-out 3; }
-.tualito-avatar.alert { animation: tualitoAlert 0.8s ease-in-out infinite; box-shadow: 0 4px 16px rgba(255,140,0,0.5); }
-
-@keyframes tualitoBreathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
-@keyframes tualitoThink { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-3deg); } 75% { transform: rotate(3deg); } }
-@keyframes tualitoListen { 0% { box-shadow: 0 0 0 0 rgba(227,6,19,0.5); } 70% { box-shadow: 0 0 0 14px rgba(227,6,19,0); } 100% { box-shadow: 0 0 0 0 rgba(227,6,19,0); } }
-@keyframes tualitoExcited { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
-@keyframes tualitoAlert { 0%, 100% { transform: translateY(0); } 25% { transform: translateY(-4px); } 75% { transform: translateY(2px); } }
-
-/* Badge de notificación */
-.tualito-badge {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 18px;
-  height: 18px;
-  background: var(--accent-orange);
-  border-radius: 50%;
-  border: 2px solid white;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  font-size: 9px;
-  font-weight: 700;
-  color: white;
-}
-.tualito-badge.show { display: flex; }
-
-/* Botón de voz en la mascota (accesibilidad adultos mayores) */
-.tualito-voice-btn {
-  position: absolute;
-  bottom: -2px;
-  left: -12px;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: #4CAF50;
-  border: 2px solid white;
-  color: white;
-  font-size: 11px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(76,175,80,0.4);
-  transition: all 0.2s;
-}
-.tualito-voice-btn:active { transform: scale(0.85); }
-.tualito-voice-btn.recording {
-  background: #f44336;
-  box-shadow: 0 0 0 0 rgba(244,67,54,0.5);
-  animation: tualitoListen 1.2s ease-in-out infinite;
-}
-
-/* ===== CHAT DEDICADO (Pantalla completa) ===== */
-#page-asistente .main-content {
-  padding-bottom: 0;
-  height: calc(100vh - var(--header-height) - var(--status-bar-height));
-  display: flex;
-  flex-direction: column;
-}
-
-.ai-chat-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-.ai-chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
-
-.chat-message { display: flex; flex-direction: column; max-width: 85%; animation: msgFadeIn 0.3s ease; }
-.chat-message.chat-user { align-self: flex-end; }
-.chat-message.chat-ai { align-self: flex-start; }
-
-@keyframes msgFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-
-.chat-bubble { padding: 12px 16px; border-radius: 18px; font-size: 14px; line-height: 1.5; word-wrap: break-word; }
-.chat-bubble-user { background: var(--primary-red); color: white; border-bottom-right-radius: 4px; }
-.chat-bubble-ai { background: white; color: var(--text-primary); border-bottom-left-radius: 4px; box-shadow: var(--shadow-sm); }
-
-.chat-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; padding-left: 4px; }
-.chat-action-btn {
-  padding: 6px 12px; border-radius: 20px; border: 1.5px solid var(--primary-red);
-  background: white; color: var(--primary-red); font-size: 12px; font-weight: 600;
-  cursor: pointer; transition: all 0.2s; white-space: nowrap;
-}
-.chat-action-btn:active { background: var(--primary-red); color: white; transform: scale(0.95); }
-
-/* Input del chat */
-.ai-chat-input {
-  display: flex; align-items: center; gap: 8px; padding: 12px 16px;
-  background: white; border-top: 1px solid var(--border-color);
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-}
-.ai-chat-input input {
-  flex: 1; border: 1.5px solid var(--border-color); border-radius: 24px;
-  padding: 10px 16px; font-size: 14px; outline: none; transition: border-color 0.2s;
-}
-.ai-chat-input input:focus { border-color: var(--primary-red); }
-
-.ai-send-btn {
-  width: 40px; height: 40px; border-radius: 50%; background: var(--primary-red);
-  border: none; color: white; font-size: 16px; display: flex; align-items: center;
-  justify-content: center; cursor: pointer; transition: transform 0.2s;
-}
-.ai-send-btn:active { transform: scale(0.9); background: var(--primary-dark-red); }
-
-.ai-voice-btn {
-  width: 40px; height: 40px; border-radius: 50%; background: var(--bg-secondary);
-  border: 2px solid var(--border-color); color: var(--text-secondary); font-size: 16px;
-  display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;
-}
-.ai-voice-btn:active { transform: scale(0.9); }
-.ai-voice-btn.listening { background: var(--primary-red); border-color: var(--primary-red); color: white; animation: tualitoListen 1.2s ease-in-out infinite; }
-
-/* Voice status */
-.ai-voice-status { display: none; align-items: center; justify-content: center; gap: 8px; padding: 8px 16px; background: #FFF0F0; border-radius: 8px; margin: 0 16px 8px; font-size: 12px; color: var(--primary-red); font-weight: 600; }
-.ai-voice-status.show { display: flex; }
-.voice-wave { display: flex; gap: 2px; align-items: center; }
-.voice-wave span { width: 3px; height: 12px; background: var(--primary-red); border-radius: 2px; animation: voiceWave 0.8s ease-in-out infinite; }
-.voice-wave span:nth-child(2) { animation-delay: 0.1s; }
-.voice-wave span:nth-child(3) { animation-delay: 0.2s; }
-.voice-wave span:nth-child(4) { animation-delay: 0.3s; }
-@keyframes voiceWave { 0%,100% { height: 6px; } 50% { height: 16px; } }
-
-/* AI Header */
-.ai-header-info { display: flex; align-items: center; gap: 10px; }
-.ai-avatar-header { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 16px; }
-.ai-header-text { display: flex; flex-direction: column; }
-.ai-header-name { font-size: 14px; font-weight: 700; color: white; }
-.ai-header-status { font-size: 10px; color: rgba(255,255,255,0.8); display: flex; align-items: center; gap: 4px; }
-.ai-header-status::before { content: ''; width: 6px; height: 6px; background: #4CAF50; border-radius: 50%; }
-
-/* ===== ALERTAS EN HOME ===== */
-#contenedor-alertas-tuali { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-
-.alerta-tuali {
-  display: flex; align-items: flex-start; gap: 10px;
-  padding: 12px 14px; border-radius: 12px;
-  font-size: 13px; line-height: 1.4;
-  animation: msgFadeIn 0.3s ease; position: relative;
-}
-.alerta-tuali.alerta-desabasto { background: #FFF3E0; border: 1px solid #FFB74D; color: #E65100; }
-.alerta-tuali.alerta-seguridad { background: #FCE4EC; border: 1px solid #F48FB1; color: #880E4F; }
-
-.alerta-tuali-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
-.alerta-tuali-content { flex: 1; }
-.alerta-tuali-title { font-weight: 700; font-size: 12px; margin-bottom: 2px; }
-.alerta-tuali-text { font-size: 12px; opacity: 0.9; }
-.alerta-tuali-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
-.alerta-tuali-btn { padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; border: none; cursor: pointer; transition: transform 0.1s; }
-.alerta-tuali-btn:active { transform: scale(0.95); }
-.alerta-tuali-btn-confirm { background: #4CAF50; color: white; }
-.alerta-tuali-btn-report { background: #f44336; color: white; }
-.alerta-tuali-btn-order { background: var(--primary-red); color: white; }
-.alerta-tuali-btn-dismiss { background: #E0E0E0; color: #616161; }
-.alerta-tuali-close { position: absolute; top: 6px; right: 8px; background: none; border: none; font-size: 14px; color: inherit; opacity: 0.5; cursor: pointer; }
-
-/* Notification banner */
-.ai-notification {
-  display: none; position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
-  width: calc(100% - 32px); max-width: 400px; background: white; border-radius: 12px;
-  padding: 12px 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); z-index: 9999;
-  align-items: center; gap: 12px; cursor: pointer; animation: slideDown 0.3s ease;
-  border-left: 4px solid var(--accent-orange);
-}
-@keyframes slideDown { from { transform: translateX(-50%) translateY(-100%); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
-.notif-icon { font-size: 28px; flex-shrink: 0; }
-.notif-content { flex: 1; }
-.notif-title { font-size: 13px; font-weight: 700; }
-.notif-text { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
-.notif-close { background: none; border: none; font-size: 16px; color: var(--text-muted); cursor: pointer; padding: 4px; }
-
-
-/* ===== GARANTIZAR QUE INPUTS NO ESTÉN BLOQUEADOS ===== */
-#app-container,
-.app-container {
-  position: relative;
-  z-index: 1;
-  pointer-events: auto;
-}
-#app-container input,
-#app-container button,
-.app-container input,
-.app-container button,
-.search-bar input,
-.ai-chat-input input,
-.input-field {
-  pointer-events: auto !important;
-  position: relative;
-  z-index: 1;
-}
-
-
-/* ===== CHAT DEDICADO TUALITO (Modal pantalla completa) ===== */
-#tuali-chat-container {
+/* ===== CHAT COMPLETO (estilo ChatGPT) ===== */
+#tualito-chat {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: 0; left: 0; right: 0; bottom: 0;
   max-width: 430px;
   margin: 0 auto;
-  right: 0;
-  background: var(--bg-secondary, #F5F5F7);
+  background: #FFFFFF;
   z-index: 10000;
   display: none;
   flex-direction: column;
-  overflow: hidden;
 }
-#tuali-chat-container[style*="display: flex"],
-#tuali-chat-container[style*="display:flex"] {
-  display: flex !important;
-}
+#tualito-chat.abierto { display: flex; }
 
-.tuali-chat-body {
-  flex: 1;
+/* Header del chat */
+.chat-header {
+  background: #E30613;
+  color: white;
+  padding: 16px 20px;
   display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.chat-header-left {
+  display: flex; align-items: center; gap: 12px;
+}
+.chat-header-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.chat-header-info h3 { font-size: 15px; font-weight: 700; margin: 0; }
+.chat-header-info span { font-size: 11px; opacity: 0.8; }
+.chat-cerrar {
+  background: none; border: none; color: white;
+  font-size: 22px; cursor: pointer; padding: 4px 8px;
 }
 
-#tuali-chat-mensajes {
+/* Mensajes */
+.chat-mensajes {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 20px 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  background: #F9F9F9;
 }
 
-/* Burbujas de chat dentro del chat dedicado */
-#tuali-chat-mensajes .burbuja-ai {
+.msg {
+  max-width: 85%;
+  padding: 12px 16px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  word-wrap: break-word;
+  animation: msgIn 0.2s ease;
+}
+@keyframes msgIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+.msg-ai {
   align-self: flex-start;
   background: white;
   color: #1A1A2E;
-  padding: 12px 16px;
-  border-radius: 18px 18px 18px 4px;
-  max-width: 80%;
-  font-size: 14px;
-  line-height: 1.5;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+  border: 1px solid #E8E8E8;
+  border-bottom-left-radius: 4px;
 }
-
-#tuali-chat-mensajes .burbuja-usuario {
+.msg-user {
   align-self: flex-end;
   background: #E30613;
   color: white;
-  padding: 12px 16px;
-  border-radius: 18px 18px 4px 18px;
-  max-width: 80%;
-  font-size: 14px;
-  line-height: 1.5;
+  border-bottom-right-radius: 4px;
 }
+
+/* Botones de acción rápida */
+.msg-acciones {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;
+}
+.msg-accion-btn {
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1.5px solid #E30613;
+  background: white;
+  color: #E30613;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.msg-accion-btn:active {
+  background: #E30613; color: white; transform: scale(0.95);
+}
+
+/* Input area (estilo ChatGPT) */
+.chat-input-area {
+  padding: 12px 16px;
+  background: white;
+  border-top: 1px solid #E8E8E8;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.chat-input-area input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1.5px solid #E0E0E0;
+  border-radius: 24px;
+  font-size: 14px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+.chat-input-area input:focus { border-color: #E30613; }
+
+/* Botón micrófono (estilo ChatGPT) */
+.chat-btn-mic {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  border: none;
+  background: #F0F0F0;
+  color: #666;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.chat-btn-mic.grabando {
+  background: #E30613;
+  color: white;
+  animation: micPulse 1.5s ease-in-out infinite;
+}
+@keyframes micPulse {
+  0% { box-shadow: 0 0 0 0 rgba(227,6,19,0.4); }
+  70% { box-shadow: 0 0 0 12px rgba(227,6,19,0); }
+  100% { box-shadow: 0 0 0 0 rgba(227,6,19,0); }
+}
+
+/* Botón enviar */
+.chat-btn-enviar {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  border: none;
+  background: #E30613;
+  color: white;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.1s;
+}
+.chat-btn-enviar:active { transform: scale(0.9); }

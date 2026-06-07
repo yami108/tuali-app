@@ -489,38 +489,163 @@ def get_alertas():
 def tuali_chat():
     """
     POST /api/tuali-chat
-    Procesa exclusivamente la transcripción real del usuario (voz o texto).
+    Procesa la entrada del usuario y responde inteligentemente.
+    Soporta el flujo: pedir → ¿algo más? → confirmar pedido.
     """
     try:
         datos = request.get_json()
         mensaje_usuario = (datos.get('mensaje') or datos.get('message', '')).strip() if datos else ''
+        estado = datos.get('estado', 'idle')
+        carrito_temp = datos.get('carrito_temp', [])
 
         if not mensaje_usuario:
-            return jsonify({"respuesta": "No se ha detectado ninguna instrucción de voz. Por favor, intente hablar de nuevo.", "response": "No se ha detectado ninguna instrucción de voz. Por favor, intente hablar de nuevo."})
+            return jsonify({"response": "No detecté lo que dijiste. ¿Puedes repetirlo?", "respuesta": "No detecté lo que dijiste. ¿Puedes repetirlo?"})
 
-        # Validación: Procesar únicamente la entrada real del tendero
-        print(f"Procesando entrada real del tendero: {mensaje_usuario}")
+        print(f"[Tualito] Entrada: '{mensaje_usuario}' | Estado: {estado}")
 
-        # Llamar a Gemini (o fallback local inteligente)
-        context = datos.get('context', '') or datos.get('contexto_pantalla', '')
-        response = call_gemini(mensaje_usuario, context)
+        # Intentar Gemini primero si está configurado
+        if GEMINI_API_KEY:
+            gemini_resp = call_gemini(mensaje_usuario, datos.get('contexto_pantalla', ''))
+            if gemini_resp and gemini_resp.get('text'):
+                return jsonify({
+                    "response": gemini_resp['text'],
+                    "respuesta": gemini_resp['text'],
+                    "action": gemini_resp.get('action'),
+                    "productos_agregados": gemini_resp.get('productos'),
+                    "estado": estado,
+                    "timestamp": datetime.datetime.now().isoformat()
+                })
 
-        respuesta_texto = response.get('text', f"Entendido. He recibido su instrucción respecto a: '{mensaje_usuario}'. Procesando la solicitud en el sistema de Arca Continental.")
+        # === FALLBACK LOCAL INTELIGENTE ===
+        msg = mensaje_usuario.lower()
 
+        # Estado: esperando confirmación
+        if estado == 'esperando_confirmacion':
+            if any(w in msg for w in ['sí', 'si', 'dale', 'ok', 'confirma', 'acepto', 'va', 'sale']):
+                return jsonify({
+                    "response": f"✅ Pedido confirmado. Se agregaron {len(carrito_temp)} productos a tu carrito.",
+                    "respuesta": f"✅ Pedido confirmado. Se agregaron {len(carrito_temp)} productos a tu carrito.",
+                    "productos_agregados": carrito_temp,
+                    "estado": "idle"
+                })
+            else:
+                return jsonify({
+                    "response": "Entendido, cancelé el pedido. ¿En qué más te ayudo?",
+                    "respuesta": "Entendido, cancelé el pedido. ¿En qué más te ayudo?",
+                    "estado": "idle"
+                })
+
+        # Estado: esperando más productos
+        if estado == 'esperando_mas':
+            if any(w in msg for w in ['no', 'ya', 'eso es todo', 'nada más', 'solo eso', 'listo']):
+                total = len(carrito_temp)
+                return jsonify({
+                    "response": f"Tienes {total} producto(s) en el pedido. ¿Confirmo?",
+                    "respuesta": f"Tienes {total} producto(s) en el pedido. ¿Confirmo?",
+                    "estado": "esperando_confirmacion"
+                })
+
+        # Detectar productos en la frase
+        product_map = {
+            'coca': 'Coca-Cola 600ml', 'fanta': 'Fanta Naranja 600ml', 'sprite': 'Sprite 600ml',
+            'ciel': 'Ciel 1L', 'agua': 'Ciel 1L', 'topo': 'Topo Chico 600ml',
+            'del valle': 'Del Valle Durazno 1L', 'jugo': 'Del Valle Durazno 1L',
+            'monster': 'Monster Energy', 'powerade': 'Powerade 600ml',
+            'bokados': 'Bokados Papas Clasicas', 'papas': 'Bokados Papas Clasicas',
+            'mundet': 'Sidral Mundet 600ml', 'palomitas': 'Bokados Palomitas',
+            'cacahuate': 'Bokados Cacahuates', 'chicharron': 'Bokados Chicharron',
+        }
+
+        encontrados = []
+        for key, product_name in product_map.items():
+            if key in msg and product_name not in encontrados:
+                encontrados.append(product_name)
+
+        # Si pidió algo
+        if any(w in msg for w in ['pedir', 'quiero', 'necesito', 'dame', 'ponme', 'manda', 'encarga', 'trae', 'surte']):
+            if encontrados:
+                lista = '\n'.join([f'• {p}' for p in encontrados])
+                return jsonify({
+                    "response": f"Entendido, te pongo:\n\n{lista}\n\n¿Vas a querer algo más o ya hago el pedido?",
+                    "respuesta": f"Entendido, te pongo:\n\n{lista}\n\n¿Vas a querer algo más o ya hago el pedido?",
+                    "productos_agregados": None,
+                    "estado": "esperando_mas"
+                })
+            else:
+                return jsonify({
+                    "response": "¿Qué productos necesitas? Tengo refrescos, aguas, jugos, snacks y energéticas.",
+                    "respuesta": "¿Qué productos necesitas? Tengo refrescos, aguas, jugos, snacks y energéticas.",
+                    "estado": "esperando_mas"
+                })
+
+        # Si menciona productos sin verbo explícito (en estado esperando_mas)
+        if encontrados and estado == 'esperando_mas':
+            lista = '\n'.join([f'• {p}' for p in encontrados])
+            return jsonify({
+                "response": f"Agregué:\n{lista}\n\n¿Necesitas algo más o ya confirmo?",
+                "respuesta": f"Agregué:\n{lista}\n\n¿Necesitas algo más o ya confirmo?",
+                "estado": "esperando_mas"
+            })
+
+        # Recomendaciones
+        if any(w in msg for w in ['recomiend', 'sugier', 'zona', 'que se vende']):
+            # Obtener clima
+            weather = get_weather()
+            conn = get_db()
+            entorno = conn.execute("SELECT * FROM entorno_tienda WHERE customer_id = 'AC-MX-48291'").fetchone()
+            conn.close()
+
+            text = f"📍 Recomendaciones para tu zona:\n\n"
+            text += f"🌡️ Clima: {weather['temp']}°C, {weather['description']}\n\n"
+            text += "🏫 Kinder cercano → Jugos Del Valle (los papás compran a la salida)\n"
+            text += "🏫 Primaria → Snacks Bokados y Ciel 500ml (para el recreo)\n"
+            text += "🌳 Parque → Powerade y agua (deportistas)\n\n"
+            text += "¿Quieres que te agregue alguno de estos al carrito?"
+            return jsonify({"response": text, "respuesta": text, "estado": "idle"})
+
+        # Inventario bajo
+        if any(w in msg for w in ['inventario', 'stock', 'terminar', 'acabar', 'falta']):
+            conn = get_db()
+            low = conn.execute("""
+                SELECT producto, stock_actual,
+                       CAST(stock_actual AS REAL) / CASE WHEN ventas_por_dia > 0 THEN ventas_por_dia ELSE 1 END as dias
+                FROM inventario_tienda
+                WHERE CAST(stock_actual AS REAL) / CASE WHEN ventas_por_dia > 0 THEN ventas_por_dia ELSE 1 END <= 2
+                ORDER BY dias ASC LIMIT 5
+            """).fetchall()
+            conn.close()
+
+            if low:
+                text = "⚠️ Productos por terminarse:\n\n"
+                prods = []
+                for r in low:
+                    text += f"• {r['producto']}: {r['stock_actual']} unidades (~{round(r['dias'],1)} días)\n"
+                    prods.append(r['producto'])
+                text += "\n¿Hago el pedido de reabastecimiento?"
+                return jsonify({"response": text, "respuesta": text, "estado": "esperando_confirmacion"})
+            else:
+                return jsonify({"response": "✅ Tu inventario está bien por ahora.", "respuesta": "✅ Tu inventario está bien por ahora.", "estado": "idle"})
+
+        # Saludos
+        if any(w in msg for w in ['hola', 'buenos', 'buenas', 'hey']):
+            return jsonify({
+                "response": "¡Hola! ¿En qué te puedo ayudar? Puedo hacerte pedidos, recomendarte productos o revisar tu inventario.",
+                "respuesta": "¡Hola! ¿En qué te puedo ayudar? Puedo hacerte pedidos, recomendarte productos o revisar tu inventario.",
+                "estado": "idle"
+            })
+
+        # Default
         return jsonify({
-            "respuesta": respuesta_texto,
-            "response": respuesta_texto,
-            "action": response.get('action'),
-            "order_id": response.get('order_id'),
-            "productos": response.get('productos'),
-            "timestamp": datetime.datetime.now().isoformat()
+            "response": f"Recibí tu mensaje: '{mensaje_usuario}'. ¿Quieres que te ayude a hacer un pedido o ver recomendaciones?",
+            "respuesta": f"Recibí tu mensaje: '{mensaje_usuario}'. ¿Quieres que te ayude a hacer un pedido o ver recomendaciones?",
+            "estado": estado
         })
 
     except Exception as e:
         print(f"Error en el servidor: {str(e)}")
         return jsonify({
-            "respuesta": "En este momento no puedo procesar la solicitud. Por favor, intente nuevamente.",
-            "response": "En este momento no puedo procesar la solicitud. Por favor, intente nuevamente."
+            "response": "Hubo un error. Intenta de nuevo.",
+            "respuesta": "Hubo un error. Intenta de nuevo."
         })
 
 
