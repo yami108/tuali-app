@@ -160,11 +160,30 @@
         <div class="toast" id="toast"></div>
     </div>
 
+    <!-- ===== CHAT DEDICADO DE TUALITO (Pantalla completa oculta por defecto) ===== -->
+    <div id="tuali-chat-container" style="display:none;">
+        <div class="status-bar"><span class="status-bar-time">9:41</span><div class="status-bar-icons"><i class="fas fa-signal"></i><i class="fas fa-wifi"></i><i class="fas fa-battery-full"></i></div></div>
+        <div class="app-header">
+            <div class="ai-header-info">
+                <div class="ai-avatar-header"><div class="corcholata-mini">T</div></div>
+                <div class="ai-header-text"><span class="ai-header-name">Tualito</span><span class="ai-header-status">En linea</span></div>
+            </div>
+            <div class="app-header-actions">
+                <button class="header-icon-btn" id="tuali-chat-cerrar" style="background:transparent;"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <div class="tuali-chat-body">
+            <div class="ai-chat-messages" id="tuali-chat-mensajes"></div>
+            <div class="ai-chat-input">
+                <input type="text" id="tuali-chat-input" placeholder="Escriba su solicitud...">
+                <button class="ai-send-btn" id="tuali-chat-enviar"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
     <!-- Componente Global de la Mascota Tualito -->
     <div id="tuali-mascota-global" class="mascota-contenedor" style="display:none;">
-        <!-- Asset vinculado al boceto manual proporcionado -->
         <img src="img/tualito-corcholata.png" alt="Tualito AI" id="tuali-asset" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-        <!-- Fallback CSS si la imagen no se carga -->
         <div class="corcholata-fallback" style="display:none;">
             <div class="corcholata-eyes"><span>●</span><span>●</span></div>
             <div class="corcholata-mouth">⌣</div>

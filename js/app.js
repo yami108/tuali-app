@@ -133,6 +133,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // DOBLE CLIC: Abrir el Chat Dedicado de Tualito
+    mascota.addEventListener("dblclick", () => {
+        escuchaActiva = false;
+        receptorVoz.stop();
+        if (bocadillo) bocadillo.style.display = "none";
+        abrirChatDedicado();
+    });
+
     // Login listeners
     document.getElementById('login-code')?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') doLogin();
@@ -140,6 +148,24 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('login-phone')?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') document.getElementById('login-code').focus();
     });
+
+    // ===== CHAT DEDICADO: Botón de cierre =====
+    const btnCerrarChat = document.getElementById('tuali-chat-cerrar');
+    if (btnCerrarChat) {
+        btnCerrarChat.addEventListener('click', () => {
+            cerrarChatDedicado();
+        });
+    }
+
+    // ===== CHAT DEDICADO: Enviar mensaje por texto =====
+    const btnEnviarChat = document.getElementById('tuali-chat-enviar');
+    const inputChat = document.getElementById('tuali-chat-input');
+    if (btnEnviarChat && inputChat) {
+        btnEnviarChat.addEventListener('click', () => enviarMensajeChat());
+        inputChat.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') enviarMensajeChat();
+        });
+    }
 });
 
 // ============================================================
@@ -277,4 +303,69 @@ function showToast(msg) {
     if (!t) return;
     t.textContent = msg; t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+
+
+// ============================================================
+// CHAT DEDICADO DE TUALITO
+// ============================================================
+
+function abrirChatDedicado() {
+    const chatContainer = document.getElementById('tuali-chat-container');
+    if (!chatContainer) return;
+    chatContainer.style.display = 'flex';
+    // Ocultar mascota mientras el chat está abierto
+    const mascota = document.getElementById('tuali-mascota-global');
+    if (mascota) mascota.style.display = 'none';
+    // Mensaje de bienvenida si el chat está vacío
+    const mensajes = document.getElementById('tuali-chat-mensajes');
+    if (mensajes && mensajes.children.length === 0) {
+        agregarBurbujaChat('ai', 'Bienvenido al canal de atención Tualito. ¿En qué puedo asistirle el día de hoy?');
+    }
+}
+
+function cerrarChatDedicado() {
+    const chatContainer = document.getElementById('tuali-chat-container');
+    if (chatContainer) chatContainer.style.display = 'none';
+    // Restaurar la mascota
+    const mascota = document.getElementById('tuali-mascota-global');
+    if (mascota && currentPage !== 'login' && currentPage !== 'carrito') {
+        mascota.style.display = 'flex';
+    }
+}
+
+function enviarMensajeChat() {
+    const input = document.getElementById('tuali-chat-input');
+    if (!input || !input.value.trim()) return;
+    const texto = input.value.trim();
+    input.value = '';
+
+    // Mostrar burbuja del usuario
+    agregarBurbujaChat('usuario', texto);
+
+    // Enviar al backend
+    fetch('/api/tuali-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: texto, mensaje: texto, contexto_pantalla: currentPage })
+    })
+    .then(res => res.json())
+    .then(data => {
+        const respuesta = data.response || data.respuesta || "Solicitud registrada. Se procesará en breve.";
+        agregarBurbujaChat('ai', respuesta);
+    })
+    .catch(() => {
+        agregarBurbujaChat('ai', 'Se presentó un inconveniente de conexión. Intente nuevamente en un momento.');
+    });
+}
+
+function agregarBurbujaChat(tipo, texto) {
+    const contenedor = document.getElementById('tuali-chat-mensajes');
+    if (!contenedor) return;
+    const burbuja = document.createElement('div');
+    burbuja.className = tipo === 'ai' ? 'burbuja-ai' : 'burbuja-usuario';
+    burbuja.textContent = texto;
+    contenedor.appendChild(burbuja);
+    contenedor.scrollTop = contenedor.scrollHeight;
 }
