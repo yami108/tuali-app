@@ -7,6 +7,7 @@
 let aiState = 'idle'; // idle, asking_products, confirming_order, inventory_alert
 let recognition = null;
 let isListening = false;
+let escucharActivamente = false; // Flag para escucha continua persistente
 let micPermissionGranted = false;
 let tualitoClickTimer = null;
 
@@ -141,36 +142,35 @@ function handleTualitoAction() {
 }
 
 // ============================================================
-// SISTEMA DE VOZ - FIX COMPLETO
+// SISTEMA DE VOZ - ESCUCHA CONTINUA PERSISTENTE
 // ============================================================
 
 /**
- * Inicializa el reconocimiento de voz de forma segura.
- * 1. Valida soporte del navegador
- * 2. Solicita permisos explícitamente con getUserMedia
- * 3. Inicializa SpeechRecognition con compatibilidad cruzada
+ * Inicializa el reconocimiento de voz con reinicio automático.
+ * BUG FIX: El recognition.onend ahora reinicia la escucha si
+ * escucharActivamente === true, evitando que se destruya tras cada frase.
  */
 function initVoiceSystem() {
-  // Validación de soporte
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
     console.warn('Web Speech API no soportada en este navegador');
     return false;
   }
 
-  // Crear instancia
   recognition = new SpeechRecognition();
   recognition.lang = 'es-MX';
-  recognition.continuous = false;
+  recognition.continuous = false; // Se maneja reinicio manual en onend para evitar bloqueos de buffer
   recognition.interimResults = true;
   recognition.maxAlternatives = 1;
 
-  // Event handlers
   recognition.onstart = () => {
     isListening = true;
     setTualitoState('listening');
     updateVoiceUI(true);
-    showToast('🎙️ Escuchando... habla ahora');
+    // Agregar clase de grabación a la mascota global
+    const mascota = document.getElementById('tuali-mascota-flotante');
+    if (mascota) mascota.classList.add('grabando-active');
+    showToast('🎙️ Tualito está escuchando... habla ahora');
   };
 
   recognition.onresult = (event) => {
@@ -195,8 +195,7 @@ function initVoiceSystem() {
     // Resultado final: enviar al chat
     if (finalTranscript) {
       if (input) input.value = '';
-      stopVoiceCapture();
-      // Si estamos en el chat, enviar ahí. Si no, abrir chat y enviar.
+      // NO llamar stopVoiceCapture aquí - dejar que onend maneje el reinicio
       if (currentPage === 'asistente') {
         sendAIMessage(finalTranscript);
       } else {
@@ -208,124 +207,152 @@ function initVoiceSystem() {
 
   recognition.onerror = (event) => {
     console.error('Speech recognition error:', event.error);
-    stopVoiceCapture();
+    // Quitar clase visual
+    const mascota = document.getElementById('tuali-mascota-flotante');
+    if (mascota) mascota.classList.remove('grabando-active');
 
     switch (event.error) {
       case 'not-allowed':
         micPermissionGranted = false;
+        escucharActivamente = false;
+        updateVoiceUI(false);
+        setTualitoState('idle');
         showToast('⚠️ Permite el acceso al micrófono');
-        addMessageToChat('ai', '⚠️ **Necesito permiso para usar tu micrófono.**\n\nHaz clic en el icono de candado 🔒 en la barra de tu navegador y activa "Micrófono".\n\nSi estás abriendo desde un archivo local, abre desde:\n🌐 **https://yami108.github.io/tuali-app/**', []);
+        addMessageToChat('ai', '⚠️ **Necesito permiso para tu micrófono, jefe.**\n\nDale clic al candadito 🔒 arriba en tu navegador y activa "Micrófono".\n\nSi lo abriste desde un archivo, mejor ábrelo desde:\n🌐 **https://yami108.github.io/tuali-app/**', []);
         break;
       case 'no-speech':
-        showToast('No escuché nada. Intenta de nuevo.');
+        // No detener escucha activa por silencio
+        if (!escucharActivamente) {
+          showToast('No escuché nada. Intenta de nuevo.');
+        }
         break;
       case 'network':
+        escucharActivamente = false;
+        updateVoiceUI(false);
+        setTualitoState('idle');
         showToast('⚠️ Se necesita internet para reconocimiento de voz');
         break;
       case 'aborted':
-        break; // Usuario canceló
+        break;
       default:
-        showToast('Error de voz: ' + event.error);
+        if (!escucharActivamente) {
+          showToast('Error de voz: ' + event.error);
+        }
     }
   };
 
+  // SOLUCIÓN AL BUG PRINCIPAL: Reinicio automático continuo
   recognition.onend = () => {
-    stopVoiceCapture();
+    isListening = false;
+    const mascota = document.getElementById('tuali-mascota-flotante');
+    if (mascota) mascota.classList.remove('grabando-active');
+
+    // Si la vista de chat de voz sigue abierta Y el usuario quiere seguir escuchando,
+    // reiniciar la escucha automáticamente tras un breve delay
+    if (escucharActivamente) {
+      setTimeout(() => {
+        if (escucharActivamente) {
+          try {
+            recognition.start();
+          } catch(e) {
+            console.log('Reinicio de escucha diferido');
+            setTimeout(() => { try { recognition.start(); } catch(_){} }, 500);
+          }
+        }
+      }, 300);
+    } else {
+      updateVoiceUI(false);
+      setTualitoState('idle');
+    }
   };
 
   return true;
 }
 
 /**
- * Solicita permisos de micrófono explícitamente y luego inicia la captura.
- * Esto resuelve el bug de que no se pedían permisos antes de iniciar.
+ * Solicita permisos de micrófono explícitamente con getUserMedia
+ * y luego inicia la escucha continua.
  */
 async function requestMicAndStartListening() {
-  // Verificar protocolo (file:// no soporta getUserMedia)
   if (window.location.protocol === 'file:') {
     showToast('⚠️ La voz requiere servidor. Abre desde GitHub Pages.');
-    addMessageToChat('ai', '⚠️ **El micrófono no funciona desde archivos locales.**\n\nAbre la app desde:\n🌐 **https://yami108.github.io/tuali-app/**\n\nO ejecuta el servidor local:\n`python server.py`\ny abre `http://localhost:5000`', []);
+    addMessageToChat('ai', '⚠️ **El micro no jala desde archivos locales, jefe.**\n\nÁbrelo desde:\n🌐 **https://yami108.github.io/tuali-app/**\n\nO corre el servidor:\n`python server.py` y abre `http://localhost:5000`', []);
     return;
   }
 
-  // Si ya tenemos permiso, iniciar directamente
   if (micPermissionGranted && recognition) {
-    startVoiceCapture();
+    startContinuousListening();
     return;
   }
 
-  // Solicitar permiso explícitamente con getUserMedia
   try {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Permiso concedido - liberar el stream inmediatamente
       stream.getTracks().forEach(track => track.stop());
       micPermissionGranted = true;
+      console.log('Acceso al micrófono concedido por el tendero.');
 
-      // Inicializar reconocimiento si no existe
       if (!recognition) {
         if (!initVoiceSystem()) {
           showToast('Tu navegador no soporta reconocimiento de voz');
           return;
         }
       }
-
-      startVoiceCapture();
+      startContinuousListening();
     } else {
-      // Fallback: intentar sin getUserMedia
       if (!recognition && !initVoiceSystem()) {
         showToast('Tu navegador no soporta reconocimiento de voz');
         return;
       }
-      startVoiceCapture();
+      startContinuousListening();
     }
   } catch (err) {
     console.error('Error de acceso al micrófono:', err);
     micPermissionGranted = false;
     showToast('⚠️ Permite el acceso al micrófono en tu navegador');
+    alert('Por favor, permite el acceso al micrófono en la barra del navegador para usar a Tualito por voz.');
   }
 }
 
-function startVoiceCapture() {
+function startContinuousListening() {
   if (!recognition) return;
+  escucharActivamente = true;
   try {
     recognition.start();
   } catch (e) {
-    // Si ya estaba corriendo, parar y reiniciar
     try { recognition.stop(); } catch(_) {}
     setTimeout(() => { try { recognition.start(); } catch(_) {} }, 300);
   }
 }
 
-function stopVoiceCapture() {
+function stopContinuousListening() {
+  escucharActivamente = false;
   isListening = false;
-  setTualitoState('idle');
   updateVoiceUI(false);
+  setTualitoState('idle');
+  const mascota = document.getElementById('tuali-mascota-flotante');
+  if (mascota) mascota.classList.remove('grabando-active');
   if (recognition) {
     try { recognition.stop(); } catch(_) {}
   }
 }
 
 function updateVoiceUI(active) {
-  // Botón de voz en el chat
   const chatVoiceBtn = document.getElementById('ai-voice-btn');
   if (chatVoiceBtn) chatVoiceBtn.classList.toggle('listening', active);
-
-  // Indicador de voz en el chat
   const voiceStatus = document.getElementById('ai-voice-status');
   if (voiceStatus) voiceStatus.classList.toggle('show', active);
-
-  // Botón de voz en la mascota
   const tualitoVoiceBtn = document.getElementById('tualito-voice-btn');
   if (tualitoVoiceBtn) tualitoVoiceBtn.classList.toggle('recording', active);
 }
 
 // ===== VOICE BUTTON HANDLERS =====
 
-/** Botón de voz en el chat dedicado */
+/** Botón de voz en el chat dedicado - Toggle continuo */
 function toggleVoice() {
-  if (isListening) {
-    stopVoiceCapture();
+  if (escucharActivamente) {
+    stopContinuousListening();
+    showToast('🎙️ Micrófono apagado');
   } else {
     requestMicAndStartListening();
   }
@@ -333,8 +360,9 @@ function toggleVoice() {
 
 /** Botón de voz en la mascota flotante (accesibilidad adultos mayores) */
 function tualitoVoice() {
-  if (isListening) {
-    stopVoiceCapture();
+  if (escucharActivamente) {
+    stopContinuousListening();
+    showToast('🎙️ Micrófono apagado');
   } else {
     closeTualitoBubble();
     setTualitoState('listening');
@@ -353,28 +381,36 @@ const zoneRecommendations = {
 };
 
 function getAIResponse(userMessage) {
-  const msg = userMessage.toLowerCase().trim();
+  const msg = userMessage.toLowerCase().trim()
+    // Normalizar modismos mexicanos informales
+    .replace(/^oiga\s*/,'').replace(/^mire\s*/,'').replace(/^fíjese\s*/,'')
+    .replace(/pos\b/g,'pues').replace(/pa\b/g,'para').replace(/nel\b/g,'no')
+    .replace(/simón/g,'sí').replace(/neta/g,'verdad').replace(/chido/g,'bien')
+    .replace(/jale\b/g,'trabajo').replace(/chamba/g,'trabajo').replace(/morro/g,'niño')
+    .replace(/chela/g,'cerveza').replace(/refri\b/g,'refrigerador').replace(/nomas/g,'nomás')
+    .replace(/ahorita/g,'ahora').replace(/ándale/g,'sí').replace(/órale/g,'sí')
+    .replace(/va\b$/,'sí').replace(/sale\b$/,'sí').replace(/jalo\b/g,'sí');
 
   // Estado: Alerta de inventario
   if (aiState === 'inventory_alert') {
-    if (msg.match(/s[ií]|ok|dale|hazlo|acepto/)) {
+    if (msg.match(/s[ií]|ok|dale|hazlo|acepto|va|sale|jalo|ándale|órale|pues|arre/)) {
       aiState = 'idle';
       storeContext.lowStock.forEach(item => addToCart(item.name));
-      return { text: `¡Listo! Agregué al carrito:\n\n${storeContext.lowStock.map(i => `${i.emoji} ${i.name}`).join('\n')}\n\n¿Confirmo el pedido?`, actions: [{ label: '✅ Confirmar', action: 'ai_confirm_yes' }, { label: '➕ Agregar más', action: 'ai_add_more' }] };
+      return { text: `¡Listo, jefe! Ya te los puse en el carrito:\n\n${storeContext.lowStock.map(i => `${i.emoji} ${i.name}`).join('\n')}\n\n¿Le doy confirmar al pedido o le agregas algo más?`, actions: [{ label: '✅ Confirmar', action: 'ai_confirm_yes' }, { label: '➕ Agregar más', action: 'ai_add_more' }] };
     }
     aiState = 'idle';
-    return { text: 'Entendido. Te aviso después. ¿Algo más?', actions: getDefaultActions() };
+    return { text: 'Sale, no hay problema. Te echo un grito cuando ya esté más urgente. ¿Te ayudo con algo más?', actions: getDefaultActions() };
   }
 
   // Estado: Confirmando pedido
   if (aiState === 'confirming_order') {
-    if (msg.match(/s[ií]|confirma|dale|acepto|ok/)) {
+    if (msg.match(/s[ií]|confirma|dale|acepto|ok|va|sale|jalo|arre|órale|pues s/)) {
       aiState = 'idle'; confirmOrder();
-      return { text: '🎉 ¡Pedido confirmado! Te llegará el próximo ' + storeContext.deliveryDay + '. Te aviso cuando salga a ruta.', actions: getDefaultActions() };
+      return { text: '🎉 ¡Listo, Don Carlos! Pedido confirmado. Te llega el ' + storeContext.deliveryDay + '. Yo te aviso cuando el camión salga para acá. ¡Éxito con las ventas! 💪', actions: getDefaultActions() };
     }
-    if (msg.match(/no|cancel|espera/)) {
+    if (msg.match(/no|cancel|espera|nel|todavía no|ahorita no|luego/)) {
       aiState = 'idle';
-      return { text: 'Ok, lo dejé en tu carrito. ¿En qué más te ayudo?', actions: getDefaultActions() };
+      return { text: 'Órale, ahí te lo dejo en el carrito por si al rato te animas. ¿Algo más en que te eche la mano?', actions: getDefaultActions() };
     }
   }
 
@@ -386,63 +422,65 @@ function getAIResponse(userMessage) {
       aiState = 'confirming_order';
       const list = found.map(p => `${p.emoji} ${p.name} - $${p.price}`).join('\n');
       const total = found.reduce((s, p) => s + p.price, 0);
-      return { text: `Agregué al carrito:\n\n${list}\n\n💰 Total: $${total.toLocaleString()}\n🚚 Entrega: ${storeContext.deliveryDay}\n\n¿Confirmo?`, actions: [{ label: '✅ Confirmar', action: 'ai_confirm_yes' }, { label: '❌ No', action: 'ai_confirm_no' }, { label: '➕ Más', action: 'ai_add_more' }] };
+      return { text: `¡Va que va! Te puse en el carrito:\n\n${list}\n\n💰 Total: $${total.toLocaleString()}\n🚚 Te llega el: ${storeContext.deliveryDay}\n\n¿Le confirmo, jefe?`, actions: [{ label: '✅ Dale', action: 'ai_confirm_yes' }, { label: '❌ Nel', action: 'ai_confirm_no' }, { label: '➕ Falta más', action: 'ai_add_more' }] };
     }
-    return { text: 'No encontré esos productos. Tengo: Coca-Cola, Fanta, Sprite, Ciel, Del Valle, Bokados, Monster y Powerade. ¿Qué necesitas?', actions: [] };
+    return { text: 'Hmm, no le caché cuál producto, jefe. Tengo de todo: Coca, Fanta, Sprite, aguas Ciel, jugos Del Valle, Bokados, Monster... ¿Cuál le pongo?', actions: [] };
   }
 
-  // Saludos
-  if (msg.match(/^(hola|buenos|buenas|hey|que tal)/)) {
+  // Saludos informales mexicanos
+  if (msg.match(/^(hola|buenos|buenas|hey|que tal|quiubo|qué onda|que onda|quihúbole|epa)/)) {
     const temp = storeContext.temperature;
-    let greeting = `¡Hola Don Carlos! 🐕 Soy Tualito, tu asistente.`;
-    if (temp > 28) greeting += ` Hoy hace ${temp}°C, ¡las bebidas frías se van a vender mucho! 🥤❄️`;
-    else if (temp < 18) greeting += ` Hoy está a ${temp}°C, buen día para snacks y bebidas calientes. ☕`;
-    else greeting += ` Hoy está a ${temp}°C, buen clima para vender de todo.`;
-    greeting += '\n\n¿En qué te ayudo?';
+    let greeting = `¡Quiúbole Don Carlos! Soy Tualito, su asistente de confianza. 🧢`;
+    if (temp > 28) greeting += `\n\n☀️ ¡Uff, hoy está haciendo un calorón de ${temp}°C! Las cocas frías y las aguas se te van a ir como agua (literalmente 😄). Asegúrate de tener bien surtido el refri.`;
+    else if (temp < 18) greeting += `\n\n🧥 Está fresquecito hoy (${temp}°C). Los chavos de la escuela van a querer papitas y cacahuates, y los del parque un cafecito.`;
+    else greeting += `\n\n🌤️ Bonito día hoy, ${temp}°C. Buen clima pa' vender de todo un poco.`;
+    greeting += '\n\n¿En qué le ayudo, jefe?';
     return { text: greeting, actions: getDefaultActions() };
   }
 
-  // Pedir productos
-  if (msg.match(/pedir|pedido|comprar|ordenar|quiero|necesito|ocupo|encarga/)) {
+  // Pedir productos - incluye formas coloquiales
+  if (msg.match(/pedir|pedido|comprar|ordenar|quiero|necesito|ocupo|encarga|manda|mándame|échale|ponme|surte|surtir|tráe|traeme|dame/)) {
     const found = findProductsInMessage(msg);
     if (found.length > 0) {
       found.forEach(p => addToCart(p.name));
       aiState = 'confirming_order';
       const list = found.map(p => `${p.emoji} ${p.name} - $${p.price}`).join('\n');
       const total = found.reduce((s, p) => s + p.price, 0);
-      return { text: `¡Claro! Agregué:\n\n${list}\n\n💰 Total: $${total.toLocaleString()}\n🚚 Entrega: ${storeContext.deliveryDay}\n\n¿Confirmo el pedido?`, actions: [{ label: '✅ Confirmar', action: 'ai_confirm_yes' }, { label: '❌ No', action: 'ai_confirm_no' }, { label: '➕ Más', action: 'ai_add_more' }] };
+      return { text: `¡Órale! Ya te lo puse, jefe:\n\n${list}\n\n💰 Total: $${total.toLocaleString()}\n🚚 Te llega: ${storeContext.deliveryDay}\n\n¿Le damos pa'delante con el pedido?`, actions: [{ label: '✅ ¡Dale!', action: 'ai_confirm_yes' }, { label: '❌ Espérate', action: 'ai_confirm_no' }, { label: '➕ Ponle más', action: 'ai_add_more' }] };
     }
     aiState = 'asking_products';
-    return { text: '¡Con gusto! ¿Qué productos necesitas?', actions: [{ label: '🥤 Refrescos', action: 'ai_cat_refrescos' }, { label: '💧 Aguas', action: 'ai_cat_aguas' }, { label: '🧃 Jugos', action: 'ai_cat_jugos' }, { label: '🍪 Snacks', action: 'ai_cat_snacks' }, { label: '🔄 Repetir pedido', action: 'ai_repeat' }] };
+    return { text: '¡Claro que sí! ¿Qué te hace falta? Dime nomás y te lo pongo en el carrito.', actions: [{ label: '🥤 Refrescos', action: 'ai_cat_refrescos' }, { label: '💧 Aguas', action: 'ai_cat_aguas' }, { label: '🧃 Jugos', action: 'ai_cat_jugos' }, { label: '🍪 Snacks', action: 'ai_cat_snacks' }, { label: '🔄 Lo de siempre', action: 'ai_repeat' }] };
   }
 
   // Recomendaciones por zona
-  if (msg.match(/recomiend|sugier|que me conviene|zona|que se vende/)) { return getZoneRecommendation(); }
+  if (msg.match(/recomiend|sugier|que me conviene|zona|que se vende|qué jalo|que jalo|tip/)) { return getZoneRecommendation(); }
   // Inventario
-  if (msg.match(/inventario|stock|se acab|falta|queda/)) { return getInventoryAlert(); }
+  if (msg.match(/inventario|stock|se acab|falta|queda|hay poco|se va a acabar|se me acaba/)) { return getInventoryAlert(); }
   // Repetir
-  if (msg.match(/repetir|lo de siempre|mismo de siempre/)) { return repeatLastOrder(); }
-  // Categorías
-  if (msg.match(/refresco/)) { return showCategoryProducts('refrescos'); }
-  if (msg.match(/agua|ciel/)) { return showCategoryProducts('aguas'); }
-  if (msg.match(/jugo|del valle/)) { return showCategoryProducts('jugos'); }
-  if (msg.match(/snack|papas|bokados/)) { return showCategoryProducts('snacks'); }
-  if (msg.match(/monster|powerade|energetica/)) { return showCategoryProducts('energeticas'); }
+  if (msg.match(/repetir|lo de siempre|mismo|lo mismo|igual que antes|lo que siempre pido/)) { return repeatLastOrder(); }
+  // Categorías con variantes coloquiales
+  if (msg.match(/refresco|coca|coca.?cola/)) { return showCategoryProducts('refrescos'); }
+  if (msg.match(/agua|ciel|topo chico/)) { return showCategoryProducts('aguas'); }
+  if (msg.match(/jugo|del valle|juguit/)) { return showCategoryProducts('jugos'); }
+  if (msg.match(/snack|papas|bokados|frituras|churritos|cacahuate|palomita/)) { return showCategoryProducts('snacks'); }
+  if (msg.match(/monster|powerade|energetica|bebida energética|energy/)) { return showCategoryProducts('energeticas'); }
   // Clima
-  if (msg.match(/clima|temperatura|calor|frio|lluv/)) {
+  if (msg.match(/clima|temperatura|calor|frio|lluv|hace calor|está haciendo/)) {
     const t = storeContext.temperature;
-    let text = `🌡️ Hoy está a **${t}°C**.\n\n`;
-    if (t > 28) text += '🔥 Día caluroso. ¡Refrescos y aguas se venderán mucho!';
-    else if (t > 22) text += '☀️ Clima agradable. Buen día para todo tipo de ventas.';
-    else text += '🧥 Está fresco. Los snacks y bebidas calientes son buena opción.';
+    let text = `🌡️ Ahorita estamos a **${t}°C**, jefe.\n\n`;
+    if (t > 28) text += '🔥 ¡Está haciendo un calorón! Los refrescos bien fríos y las aguas se van a vender como pan caliente. Asegúrate de tener surtido.';
+    else if (t > 22) text += '☀️ Clima bonito. Buen día pa\' vender de todo un poquito.';
+    else text += '🧥 Está fresco. Los snackecitos y las bebidas calientes jalan bien con este clima.';
     return { text, actions: getDefaultActions() };
   }
   // Ayuda
-  if (msg.match(/ayuda|que puedes/)) { return { text: 'Puedo ayudarte con:\n\n🛒 **Hacer pedidos** - Dime qué necesitas\n🎙️ **Por voz** - Presiona el micrófono\n📊 **Recomendaciones** - Según tu zona y clima\n📸 **Inventario** - Aviso cuando algo se acaba\n⚡ **Pedido rápido** - Confirma con un clic', actions: getDefaultActions() }; }
-  // Gracias
-  if (msg.match(/gracias/)) { return { text: '¡De nada, Don Carlos! 😊🐕 Aquí estoy siempre que me necesites. ¡Éxito con las ventas! 💪', actions: [] }; }
+  if (msg.match(/ayuda|que puedes|cómo funciona|qué haces|para qué sirves/)) { return { text: '¡Aquí andamos, jefe! Te puedo echar la mano con:\n\n🛒 **Pedidos** - Dime qué necesitas y yo lo pongo\n🎙️ **Por voz** - Nomás háblame, como si fuera tu compa\n📊 **Consejos** - Te digo qué se vende según tu zona y el clima\n📸 **Inventario** - Te aviso antes de que se te acabe algo\n⚡ **Rapidito** - Todo con un clic, sin complicaciones\n\n¿Qué se te ofrece?', actions: getDefaultActions() }; }
+  // Gracias / despedida
+  if (msg.match(/gracias|mil gracias|te la rifas|chido|va pues|nos vemos/)) { return { text: '¡No hay de queso, nomás de papa! 😄 Aquí ando siempre que me necesites, Don Carlos. ¡Éxito con las ventas hoy! 💪🧢', actions: [] }; }
+  // Groserías / frustración (manejar con empatía)
+  if (msg.match(/chin|diablos|rayos|no sirve|no funciona|no jala/)) { return { text: '¡Tranquilo, jefe! Dígame qué pasó y le echo la mano. Si es algo del pedido, del inventario o lo que sea, aquí estoy pa\' resolverle. 🤝', actions: getDefaultActions() }; }
 
-  return { text: '¿En qué te ayudo? Puedo hacer pedidos, darte recomendaciones o revisar tu inventario. También puedes hablarme por voz 🎙️', actions: getDefaultActions() };
+  return { text: '¡Aquí andamos, jefe! Dígame qué se le ofrece. Le puedo hacer pedidos, dar consejos de qué surtir, o checar su inventario. También me puede hablar por el micrófono si se le hace más fácil 🎙️', actions: getDefaultActions() };
 }
 
 function findProductsInMessage(msg) {
@@ -714,14 +752,14 @@ async function confirmarEntrega(idPedido, confirmacion) {
 function showInventoryNotification() {
   const notif = document.getElementById('ai-notification');
   if (!notif) return;
-  notif.innerHTML = `<div class="notif-icon">🐕</div><div class="notif-content"><div class="notif-title">Tualito dice:</div><div class="notif-text">Tu Coca-Cola 600ml se está acabando (3 unidades). ¡Toca para pedir!</div></div><button class="notif-close" onclick="event.stopPropagation();closeNotification()">✕</button>`;
+  notif.innerHTML = `<div class="notif-icon">🧢</div><div class="notif-content"><div class="notif-title">Tualito dice:</div><div class="notif-text">¡Ey jefe! Tu Coca-Cola 600ml se está acabando (quedan 3). ¡Tócame pa' pedirla!</div></div><button class="notif-close" onclick="event.stopPropagation();closeNotification()">✕</button>`;
   notif.style.display = 'flex';
   notif.onclick = () => {
     closeNotification();
     navigateTo('asistente');
     setTimeout(() => {
       aiState = 'inventory_alert';
-      addMessageToChat('ai', '📸 **Alerta de inventario**\n\nDetecté que tu Coca-Cola 600ml se está acabando (solo quedan 3).\n\n¿Quieres que haga el pedido ahora?', [{ label: '✅ Sí, pedir', action: 'ai_inventory_yes' }, { label: '🕐 Después', action: 'ai_inventory_no' }]);
+      addMessageToChat('ai', '📸 **¡Ojo, jefe!** Le estoy checando el refri y vi que la Coca-Cola 600ml ya nomás te quedan 3.\n\nSi no le surtes ahorita, pa\' mañana ya no vas a tener. ¿Le hago el pedido de una vez?', [{ label: '✅ ¡Dale!', action: 'ai_inventory_yes' }, { label: '🕐 Al rato', action: 'ai_inventory_no' }]);
     }, 500);
   };
 }
@@ -738,7 +776,7 @@ function closeNotification() {
 function initAI() {
   const chat = document.getElementById('ai-chat-messages');
   if (chat && chat.children.length === 0) {
-    addMessageToChat('ai', '¡Hola Don Carlos! 🐕 Soy **Tualito**, tu asistente.\n\nPuedo ayudarte a:\n🛒 Hacer pedidos (texto o voz)\n📊 Recomendarte productos según tu zona y clima\n📸 Avisarte cuando algo se acaba\n🔔 Confirmar entregas para tu seguridad\n⚡ Todo con un clic o hablándome\n\n¿En qué te ayudo?', getDefaultActions());
+    addMessageToChat('ai', '¡Quiúbole, Don Carlos! 🧢 Soy **Tualito**, su asistente de confianza.\n\nYo le echo la mano con:\n🛒 Pedidos - Dígame qué le falta y yo lo pongo\n🎙️ Por voz - Hábleme como si fuera su compa\n📊 Consejos - Le digo qué surtir según su zona\n📸 Inventario - Le aviso antes de que se le acabe algo\n⚡ Todo rapidito - Con un clic, sin tanto rollo\n\n¿Qué se le ofrece, jefe?', getDefaultActions());
   }
   initVoiceSystem();
 }
