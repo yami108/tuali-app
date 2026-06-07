@@ -270,9 +270,9 @@ function initVoiceRecognition() {
 }
 
 function toggleVoice() {
-  // Check if protocol supports voice (needs https or localhost)
+  // Check if protocol supports voice
   if (window.location.protocol === 'file:') {
-    showToast('⚠️ La voz solo funciona desde un servidor (GitHub Pages)');
+    showToast('⚠️ La voz solo funciona desde GitHub Pages');
     addMessageToChat('ai', '⚠️ **El reconocimiento de voz necesita HTTPS.**\n\nAbre la app desde:\n🌐 **https://yami108.github.io/tuali-app/**\n\nDesde archivos locales (file://) el navegador bloquea el micrófono por seguridad.\n\nMientras tanto puedes escribirme aquí. 👇', []);
     return;
   }
@@ -285,12 +285,29 @@ function toggleVoice() {
   if (isListening) {
     recognition.stop();
   } else {
-    try {
-      recognition.start();
-    } catch(e) {
-      // Si ya estaba corriendo, reiniciar
-      recognition.stop();
-      setTimeout(() => recognition.start(), 200);
+    // Pedir permiso de micrófono primero
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then((stream) => {
+          stream.getTracks().forEach(track => track.stop());
+          try {
+            recognition.start();
+          } catch(e) {
+            recognition.stop();
+            setTimeout(() => recognition.start(), 300);
+          }
+        })
+        .catch((err) => {
+          showToast('⚠️ Permite el acceso al micrófono');
+          addMessageToChat('ai', '⚠️ **Necesito permiso para usar tu micrófono.**\n\nHaz clic en el icono de candado 🔒 en la barra de tu navegador y activa "Micrófono".\n\nLuego presiona el botón de nuevo.', []);
+        });
+    } else {
+      try {
+        recognition.start();
+      } catch(e) {
+        recognition.stop();
+        setTimeout(() => recognition.start(), 300);
+      }
     }
   }
 }
