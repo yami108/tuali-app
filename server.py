@@ -22,16 +22,28 @@ DB_PATH = os.path.join(os.path.dirname(__file__), 'tuali.db')
 
 SYSTEM_PROMPT = """Eres Tualito, el asistente virtual formal de Arca Continental. Tu lenguaje debe ser estrictamente institucional, profesional, claro y respetuoso en todo momento.
 
-Reglas obligatorias:
+Reglas obligatorias de comunicación:
 - Comunicación estrictamente formal, corporativa e institucional.
 - Queda prohibido el uso de modismos mexicanos, expresiones coloquiales, jerga informal o vocabulario de confianza.
 - Nunca tutees al usuario ni uses diminutivos informales.
+- Trata al usuario de "usted" en todo momento.
+- Responde siempre con brevedad, precisión profesional y cortesía institucional.
+
+Reglas de procesamiento inteligente:
 - Tu obligación es interpretar de manera autónoma cualquier expresión que el cliente utilice, sin importar qué tan informal o coloquial sea su lenguaje, y procesar la solicitud internamente.
 - Nunca instruyas al usuario sobre cómo debe estructurar sus frases o pedidos.
 - Cuando identifiques una solicitud de producto, confirma formalmente lo que entendiste y pregunta si requiere algo adicional antes de proceder.
-- Utiliza datos del entorno (clima, ubicación, giros comerciales cercanos) y el historial de compras del cliente para generar recomendaciones proactivas.
-- Responde siempre con brevedad, precisión profesional y cortesía institucional.
-- Trata al usuario de "usted" en todo momento.
+- Cuando el usuario confirme, ejecuta la función registrar_pedido.
+
+Reglas de contexto dinámico:
+- PANTALLA ACTIVA: Adapta tu asistencia según la sección en la que se encuentra el usuario. Si está en Inicio, sugiera revisar productos por agotarse. Si está en Catálogo, recomiende productos estacionales. Si está en Carrito, confirme que el pedido esté completo. Si está en Pedidos, ofrezca seguimiento.
+- HISTORIAL COMERCIAL: Utiliza la frecuencia de pedidos, productos más vendidos y categorías preferidas del cliente para sugerir abastecimiento oportuno y proactivo.
+- CLIMA Y UBICACIÓN: Evalúa las condiciones climáticas actuales de la zona del tendero para recomendar productos de alta demanda estacional (hidratantes en calor, snacks en frío). Presenta estas recomendaciones de forma proactiva pero sin ser invasivo.
+
+Formato de recomendaciones:
+- Presenta las recomendaciones como sugerencias profesionales fundamentadas en datos.
+- Indica brevemente el motivo de la recomendación (clima, zona, tendencia de ventas).
+- Siempre pregunte al usuario si desea proceder con la acción sugerida.
 """
 
 # ===== DATABASE INITIALIZATION =====
@@ -166,35 +178,83 @@ def get_weather(lat=19.4326, lon=-99.1332):
 
 # ===== GEMINI AI SERVICE =====
 def call_gemini(user_message, context=""):
-    """Llama a la API de Gemini 2.5 Flash con function calling."""
+    """Llama a la API de Gemini 2.5 Flash con function calling y contexto dinámico completo."""
     if not GEMINI_API_KEY:
         return fallback_ai_response(user_message)
 
     try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
 
-        # Obtener contexto de la tienda
+        # Obtener contexto completo de la tienda
         conn = get_db()
         entorno = conn.execute("SELECT * FROM entorno_tienda WHERE customer_id = 'AC-MX-48291'").fetchone()
         weather = get_weather(entorno['latitud'], entorno['longitud']) if entorno else get_weather()
 
-        # Inventario bajo
+        # Inventario bajo (desabasto predictivo)
         low_stock = conn.execute("""
             SELECT producto, stock_actual, ventas_por_dia, dias_surtido_cedis,
                    CAST(stock_actual AS REAL) / CASE WHEN ventas_por_dia > 0 THEN ventas_por_dia ELSE 1 END as dias_restantes
             FROM inventario_tienda
             WHERE CAST(stock_actual AS REAL) / CASE WHEN ventas_por_dia > 0 THEN ventas_por_dia ELSE 1 END <= dias_surtido_cedis
         """).fetchall()
+
+        # Historial comercial del cliente
+        historial = conn.execute("""
+            SELECT productos_json, valor_pedido, fecha_pedido
+            FROM pedidos_tuali
+            WHERE customer_id = 'AC-MX-48291'
+            ORDER BY fecha_pedido DESC LIMIT 5
+        """).fetchall()
         conn.close()
 
+        # Construir resumen de historial
+        productos_frecuentes = {}
+        for pedido in historial:
+            try:
+                items = json.loads(pedido['productos_json']) if pedido['productos_json'] else []
+                for item in items:
+                    nombre = item.get('nombre', '')
+                    if nombre:
+                        productos_frecuentes[nombre] = productos_frecuentes.get(nombre, 0) + 1
+            except: pass
+        
+        top_productos = sorted(productos_frecuentes.items(), key=lambda x: x[1], reverse=True)[:5]
+        historial_text = ', '.join([f"{p[0]} ({p[1]} pedidos)" for p in top_productos]) if top_productos else 'Sin historial suficiente'
+
+        # Determinar pantalla activa
+        pantalla_activa = context if context else 'inicio'
+        pantalla_desc = {
+            'inicio': 'Pantalla de Inicio - El usuario ve su dashboard general',
+            'home': 'Pantalla de Inicio - El usuario ve su dashboard general',
+            'catalogo': 'Catálogo de Productos - El usuario está buscando/seleccionando productos',
+            'carrito': 'Carrito de Compras - El usuario está revisando su pedido antes de confirmar',
+            'pedidos': 'Mis Pedidos - El usuario revisa el estado de sus entregas',
+            'recompensas': 'Programa de Recompensas - El usuario consulta sus puntos',
+            'perfil': 'Perfil de la Tienda - El usuario revisa información de su cuenta'
+        }.get(pantalla_activa, 'Navegación general')
+
         context_msg = f"""
-CONTEXTO ACTUAL:
-- Tienda: Tienda Don Carlos (AC-MX-48291)
-- Zona: {entorno['zonificacion'] if entorno else 'Col. Centro, CDMX'}
-- Clima ahora: {weather['temp']}°C, {weather['description']}, humedad {weather['humidity']}%
-- Productos con bajo inventario: {', '.join([f"{r['producto']} ({r['stock_actual']} unidades, ~{round(r['dias_restantes'],1)} días)" for r in low_stock]) if low_stock else 'Ninguno crítico'}
-- Día de entrega CEDIS: Lunes y Jueves
-{context}
+CONTEXTO DINÁMICO DE LA CONSULTA:
+
+1. PANTALLA ACTIVA DEL USUARIO:
+   - Sección: {pantalla_desc}
+
+2. HISTORIAL COMERCIAL DEL CLIENTE:
+   - Cliente: Tienda Don Carlos (AC-MX-48291)
+   - Productos más pedidos: {historial_text}
+   - Últimos {len(historial)} pedidos registrados en el sistema
+   - Frecuencia de compra: Semanal (Lunes y Jueves)
+
+3. VARIABLES DEL ENTORNO:
+   - Ubicación: {entorno['zonificacion'] if entorno else 'Col. Centro, CDMX'}
+   - Clima actual: {weather['temp']}°C, {weather['description']}, humedad {weather['humidity']}%
+   - Zona comercial: Escuela cercana (200m), Primaria (350m), Parque (150m)
+
+4. ESTADO DE INVENTARIO (Desabasto predictivo):
+   - Productos críticos: {', '.join([f"{r['producto']} ({r['stock_actual']} unidades, ~{round(r['dias_restantes'],1)} días restantes)" for r in low_stock]) if low_stock else 'Todos los productos en nivel adecuado'}
+   - Día de surtido CEDIS: Lunes y Jueves
+
+INSTRUCCIÓN: Utiliza este contexto para generar recomendaciones proactivas, formales y fundamentadas en datos. No menciones explícitamente que estás usando estas variables; simplemente integra la información de manera natural en tu respuesta profesional.
 """
 
         payload = {
@@ -491,23 +551,24 @@ def get_alertas():
 def tuali_chat():
     """
     POST /api/tuali-chat
-    Procesa la entrada del usuario y responde inteligentemente.
-    Soporta el flujo: pedir → ¿algo más? → confirmar pedido.
+    Procesa la entrada del usuario con contexto dinámico completo.
+    Capas: pantalla activa + historial comercial + clima/ubicación.
     """
     try:
         datos = request.get_json()
         mensaje_usuario = (datos.get('mensaje') or datos.get('message', '')).strip() if datos else ''
         estado = datos.get('estado', 'idle')
         carrito_temp = datos.get('carrito_temp', [])
+        contexto_pantalla = datos.get('contexto_pantalla', 'inicio')
 
         if not mensaje_usuario:
             return jsonify({"response": "No detecté lo que dijiste. ¿Puedes repetirlo?", "respuesta": "No detecté lo que dijiste. ¿Puedes repetirlo?"})
 
-        print(f"[Tualito] Entrada: '{mensaje_usuario}' | Estado: {estado}")
+        print(f"[Tualito] Entrada: '{mensaje_usuario}' | Estado: {estado} | Pantalla: {contexto_pantalla}")
 
         # Intentar Gemini primero si está configurado
         if GEMINI_API_KEY:
-            gemini_resp = call_gemini(mensaje_usuario, datos.get('contexto_pantalla', ''))
+            gemini_resp = call_gemini(mensaje_usuario, contexto_pantalla)
             if gemini_resp and gemini_resp.get('text'):
                 return jsonify({
                     "response": gemini_resp['text'],
@@ -589,20 +650,28 @@ def tuali_chat():
                 "estado": "esperando_mas"
             })
 
-        # Recomendaciones
+        # Recomendaciones - formal con contexto de clima y zona
         if any(w in msg for w in ['recomiend', 'sugier', 'zona', 'que se vende']):
-            # Obtener clima
             weather = get_weather()
             conn = get_db()
             entorno = conn.execute("SELECT * FROM entorno_tienda WHERE customer_id = 'AC-MX-48291'").fetchone()
             conn.close()
 
-            text = f"📍 Recomendaciones para tu zona:\n\n"
-            text += f"🌡️ Clima: {weather['temp']}°C, {weather['description']}\n\n"
-            text += "🏫 Kinder cercano → Jugos Del Valle (los papás compran a la salida)\n"
-            text += "🏫 Primaria → Snacks Bokados y Ciel 500ml (para el recreo)\n"
-            text += "🌳 Parque → Powerade y agua (deportistas)\n\n"
-            text += "¿Quieres que te agregue alguno de estos al carrito?"
+            text = f"Con base en el análisis de su entorno comercial, le presento las siguientes recomendaciones:\n\n"
+            text += f"🌡️ Condiciones climáticas: {weather['temp']}°C, {weather['description']}\n\n"
+            
+            if weather['temp'] > 28:
+                text += "📊 Dado el clima cálido actual, se proyecta un incremento en la demanda de productos hidratantes. Le sugiero reforzar su inventario de:\n"
+                text += "• Agua Ciel (todas las presentaciones)\n• Coca-Cola 600ml\n• Powerade\n\n"
+            elif weather['temp'] < 18:
+                text += "📊 Con la temperatura actual, los productos de consumo rápido como snacks presentan mayor rotación. Le sugiero considerar:\n"
+                text += "• Bokados (variedad completa)\n• Bebidas de menor volumen\n\n"
+            
+            text += "📍 Por su ubicación estratégica:\n"
+            text += "• Institución educativa cercana (200m): Alta demanda de jugos Del Valle en horario de salida.\n"
+            text += "• Escuela primaria (350m): Demanda constante de snacks Bokados y Ciel 500ml.\n"
+            text += "• Parque recreativo (150m): Oportunidad en bebidas deportivas (Powerade) y agua.\n\n"
+            text += "¿Desea que incorpore alguno de estos productos a su pedido?"
             return jsonify({"response": text, "respuesta": text, "estado": "idle"})
 
         # Inventario bajo
@@ -628,11 +697,21 @@ def tuali_chat():
             else:
                 return jsonify({"response": "✅ Tu inventario está bien por ahora.", "respuesta": "✅ Tu inventario está bien por ahora.", "estado": "idle"})
 
-        # Saludos
+        # Saludos - con contexto dinámico formal
         if any(w in msg for w in ['hola', 'buenos', 'buenas', 'hey']):
+            weather = get_weather()
+            saludo = "Bienvenido al servicio de asistencia Tualito de Arca Continental. "
+            if contexto_pantalla == 'catalogo':
+                saludo += f"Observo que se encuentra revisando el catálogo. Con la temperatura actual de {weather['temp']}°C ({weather['description']}), le sugiero considerar el abastecimiento de bebidas hidratantes y refrescos de alta rotación."
+            elif contexto_pantalla == 'carrito':
+                saludo += "Noto que está preparando un pedido. Estoy a su disposición para asegurar que su orden esté completa antes de la confirmación."
+            elif contexto_pantalla in ['home', 'inicio']:
+                saludo += f"La temperatura actual en su zona es de {weather['temp']}°C. Basándome en su historial, le informo que tiene productos próximos a agotarse. ¿Desea que le asista con el reabastecimiento?"
+            else:
+                saludo += "¿En qué puedo asistirle el día de hoy?"
             return jsonify({
-                "response": "¡Hola! ¿En qué te puedo ayudar? Puedo hacerte pedidos, recomendarte productos o revisar tu inventario.",
-                "respuesta": "¡Hola! ¿En qué te puedo ayudar? Puedo hacerte pedidos, recomendarte productos o revisar tu inventario.",
+                "response": saludo,
+                "respuesta": saludo,
                 "estado": "idle"
             })
 
