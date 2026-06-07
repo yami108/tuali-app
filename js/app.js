@@ -1,6 +1,7 @@
 /* ============================================
    TUALI - Arca Continental
-   App Logic + Ciclo de Vida del Micrófono
+   App Logic + Micrófono + Chat Dedicado
+   VERSIÓN LIMPIA - Sin duplicados ni conflictos
    ============================================ */
 
 // ===== PRODUCTOS =====
@@ -37,211 +38,210 @@ let currentPage = 'login';
 let currentCategory = 'todos';
 
 // ============================================================
-// INICIALIZACIÓN DEL RECONOCIMIENTO DE VOZ Y MASCOTA
+// INICIALIZACIÓN PRINCIPAL
 // ============================================================
 document.addEventListener("DOMContentLoaded", () => {
+
+    // ===== REFERENCIAS DEL DOM =====
     const mascota = document.getElementById("tuali-mascota-global");
     const bocadillo = document.getElementById("tuali-bocadillo");
+    const contenedorChat = document.getElementById("tuali-chat-container");
+    const botonCerrarChat = document.getElementById("btn-cerrar-tuali-chat");
+    const botonMicrofonoChat = document.getElementById("btn-tuali-microfono");
+    const btnEnviarChat = document.getElementById("btn-tuali-enviar");
+    const inputChat = document.getElementById("input-tuali-texto");
 
-    if (!mascota) return;
-
-    // Inicialización del reconocimiento de voz nativo
+    // ===== RECONOCIMIENTO DE VOZ =====
     const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
-    if (!SpeechRecognition) {
-        console.error("Entorno no compatible con SpeechRecognition.");
-        return;
-    }
-
-    const receptorVoz = new SpeechRecognition();
-    receptorVoz.lang = 'es-MX';
-    receptorVoz.interimResults = false;
-    receptorVoz.continuous = false; // Manejo manual para evitar desincronización de hardware
-
+    let receptorVoz = null;
     let escuchaActiva = false;
 
-    // Solicitud explícita y obligatoria de permisos de hardware al iniciar
-    navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(() => console.log("Acceso al micrófono gestionado correctamente."))
-        .catch(() => console.error("Permisos de audio denegados por el navegador."));
+    if (SpeechRecognition) {
+        receptorVoz = new SpeechRecognition();
+        receptorVoz.lang = 'es-MX';
+        receptorVoz.interimResults = false;
+        receptorVoz.continuous = false;
 
-    // Ciclo de vida del micrófono
-    receptorVoz.onstart = () => {
-        mascota.classList.add("grabando-active");
-        if (bocadillo) {
-            bocadillo.style.display = "block";
-            bocadillo.innerText = "Le escucho con atención de manera continua...";
+        // Solicitar permisos al iniciar
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(() => console.log("Acceso al micrófono autorizado."))
+                .catch(() => console.error("Permisos de audio denegados."));
         }
-    };
 
-    receptorVoz.onerror = (event) => {
-        console.error("Incidencia en el hardware de audio: ", event.error);
-    };
-
-    receptorVoz.onend = () => {
-        mascota.classList.remove("grabando-active");
-        // REINICIO AUTOMÁTICO: Garantiza que el micrófono no se apague tras la primera frase
-        if (escuchaActiva) {
-            try {
-                receptorVoz.start();
-            } catch (e) {
-                console.log("Reintento de conexión de audio en curso...");
+        receptorVoz.onstart = () => {
+            if (mascota) mascota.classList.add("grabando-active");
+            if (botonMicrofonoChat) {
+                botonMicrofonoChat.style.backgroundColor = "#28a745";
+                botonMicrofonoChat.style.transform = "scale(1.05)";
             }
-        }
-    };
+        };
 
-    receptorVoz.onresult = (event) => {
-        const transcripcion = event.results[0][0].transcript;
-        console.log("Entrada de voz procesada: ", transcripcion);
+        receptorVoz.onerror = (event) => {
+            console.error("Error de audio:", event.error);
+            if (event.error === 'not-allowed') {
+                escuchaActiva = false;
+                resetMicUI();
+            }
+        };
 
-        // Limpiar bocadillo anterior antes de insertar nueva respuesta
-        if (bocadillo) {
-            bocadillo.innerText = "Procesando solicitud...";
-            bocadillo.style.display = "block";
-        }
+        receptorVoz.onend = () => {
+            if (mascota) mascota.classList.remove("grabando-active");
+            // Reinicio automático si escucha sigue activa
+            if (escuchaActiva) {
+                setTimeout(() => {
+                    try { receptorVoz.start(); } catch(e) { /* retry */ }
+                }, 300);
+            } else {
+                resetMicUI();
+            }
+        };
 
-        // Envío directo al backend sin restricciones de formato para el usuario
-        fetch('/api/tuali-chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                message: transcripcion,
-                mensaje: transcripcion,
-                contexto_pantalla: document.body.dataset.screen || "inicio"
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            const respuesta = data.response || data.respuesta || "Solicitud procesada.";
-            // Limpiar e insertar respuesta real del servidor
+        receptorVoz.onresult = (event) => {
+            const transcripcion = event.results[0][0].transcript;
+            console.log("Voz capturada:", transcripcion);
+
+            // Mostrar en bocadillo que está procesando
             if (bocadillo) {
-                bocadillo.innerText = '';
-                bocadillo.innerText = respuesta;
                 bocadillo.style.display = "block";
+                bocadillo.innerText = "Procesando...";
             }
-            // También insertar en el historial del chat dedicado si está abierto
-            const historial = document.getElementById('tuali-historial-chat');
-            if (historial) {
-                agregarBurbujaChat('usuario', transcripcion);
-                agregarBurbujaChat('ai', respuesta);
-            }
-            // Síntesis de voz para adultos mayores
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel(); // Cancelar cualquier utterance anterior
-                const utterance = new SpeechSynthesisUtterance(respuesta.replace(/\*\*/g,''));
-                utterance.lang = 'es-MX';
-                utterance.rate = 0.9;
-                window.speechSynthesis.speak(utterance);
-            }
-        })
-        .catch(err => {
-            console.error("Error en la comunicación con el servidor:", err);
-            if (bocadillo) {
-                bocadillo.innerText = "Error de conexión. Intente de nuevo.";
+
+            // Enviar al backend
+            fetch('/api/tuali-chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: transcripcion, mensaje: transcripcion, contexto_pantalla: currentPage })
+            })
+            .then(res => res.json())
+            .then(data => {
+                const respuesta = data.response || data.respuesta || "Solicitud procesada.";
+
+                // Mostrar respuesta en bocadillo (solo si el chat NO está abierto)
+                if (contenedorChat && contenedorChat.style.display === "flex") {
+                    // Chat abierto: insertar burbujas
+                    agregarBurbujaChat('usuario', transcripcion);
+                    agregarBurbujaChat('ai', respuesta);
+                } else if (bocadillo) {
+                    // Chat cerrado: mostrar en bocadillo
+                    bocadillo.innerText = respuesta;
+                    bocadillo.style.display = "block";
+                    // Ocultar bocadillo después de 8 segundos
+                    setTimeout(() => { bocadillo.style.display = "none"; }, 8000);
+                }
+
+                // Voz de respuesta
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                    const u = new SpeechSynthesisUtterance(respuesta.replace(/\*\*/g, ''));
+                    u.lang = 'es-MX';
+                    u.rate = 0.9;
+                    window.speechSynthesis.speak(u);
+                }
+            })
+            .catch(() => {
+                if (bocadillo) {
+                    bocadillo.innerText = "Error de conexión.";
+                    setTimeout(() => { bocadillo.style.display = "none"; }, 3000);
+                }
+            });
+        };
+    }
+
+    function resetMicUI() {
+        if (botonMicrofonoChat) {
+            botonMicrofonoChat.style.backgroundColor = "#e3120b";
+            botonMicrofonoChat.style.transform = "scale(1)";
+        }
+    }
+
+    function iniciarEscucha() {
+        if (!receptorVoz) return;
+        escuchaActiva = true;
+        try { receptorVoz.start(); } catch(e) { /* ya activo */ }
+    }
+
+    function detenerEscucha() {
+        escuchaActiva = false;
+        if (receptorVoz) receptorVoz.stop();
+        resetMicUI();
+        if (mascota) mascota.classList.remove("grabando-active");
+    }
+
+    // ===== EVENTOS DE LA MASCOTA =====
+    // Clic simple: NO abre el chat, solo toggle micrófono
+    // Doble clic: Abre el chat dedicado (la mascota NO desaparece)
+    let clickTimer = null;
+
+    if (mascota) {
+        mascota.addEventListener("click", (e) => {
+            e.stopPropagation();
+            // Esperar para distinguir clic simple de doble clic
+            if (clickTimer) return; // Ya hay un timer, es doble clic
+            clickTimer = setTimeout(() => {
+                clickTimer = null;
+                // CLIC SIMPLE: toggle micrófono
+                if (!escuchaActiva) {
+                    iniciarEscucha();
+                } else {
+                    detenerEscucha();
+                    if (bocadillo) bocadillo.style.display = "none";
+                }
+            }, 300);
+        });
+
+        mascota.addEventListener("dblclick", (e) => {
+            e.stopPropagation();
+            // Cancelar el timer del clic simple
+            if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
+            // DOBLE CLIC: Abrir chat dedicado. LA MASCOTA SE MANTIENE VISIBLE.
+            detenerEscucha();
+            if (bocadillo) bocadillo.style.display = "none";
+            if (contenedorChat) contenedorChat.style.display = "flex";
+        });
+    }
+
+    // ===== BOTÓN CERRAR CHAT =====
+    if (botonCerrarChat) {
+        botonCerrarChat.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (contenedorChat) contenedorChat.style.display = "none";
+        });
+    }
+
+    // ===== BOTÓN MICRÓFONO DENTRO DEL CHAT =====
+    if (botonMicrofonoChat) {
+        botonMicrofonoChat.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (!escuchaActiva) {
+                iniciarEscucha();
+            } else {
+                detenerEscucha();
             }
         });
-    };
+    }
 
-    // Alternar el estado del micrófono con un solo clic sobre la mascota
-    mascota.addEventListener("click", () => {
-        if (!escuchaActiva) {
-            escuchaActiva = true;
-            try { receptorVoz.start(); } catch(e) { /* ya activo */ }
-        } else {
-            escuchaActiva = false;
-            receptorVoz.stop();
-            if (bocadillo) bocadillo.style.display = "none";
-        }
-    });
+    // ===== ENVIAR TEXTO EN EL CHAT =====
+    if (btnEnviarChat) {
+        btnEnviarChat.addEventListener("click", () => enviarMensajeChat());
+    }
+    if (inputChat) {
+        inputChat.addEventListener("keypress", (e) => {
+            if (e.key === 'Enter') enviarMensajeChat();
+        });
+    }
 
-    // DOBLE CLIC: Abrir el Chat Dedicado de Tualito
-    mascota.addEventListener("dblclick", () => {
-        escuchaActiva = false;
-        receptorVoz.stop();
-        if (bocadillo) bocadillo.style.display = "none";
-        abrirChatDedicado();
-    });
-
-    // Login listeners
+    // ===== LOGIN =====
     document.getElementById('login-code')?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') doLogin();
     });
     document.getElementById('login-phone')?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') document.getElementById('login-code').focus();
     });
-
-    // ===== CONTROL DE NAVEGACIÓN DEL CHAT DEDICADO =====
-    const contenedorChat = document.getElementById("tuali-chat-container");
-    const botonCerrarChat = document.getElementById("btn-cerrar-tuali-chat");
-    const botonMascotaGlobal = document.getElementById("tuali-mascota-global");
-
-    if (botonMascotaGlobal && contenedorChat) {
-        // Evento para abrir el chat dedicado con doble clic sobre la mascota
-        botonMascotaGlobal.addEventListener("dblclick", () => {
-            contenedorChat.style.display = "flex";
-            console.log("Interfaz de Tualito Chat desplegada formalmente.");
-        });
-
-        // Evento alternativo: Un clic simple despliega el chat si el bocadillo está activo
-        botonMascotaGlobal.addEventListener("click", () => {
-            if (contenedorChat.style.display === "none" || contenedorChat.style.display === "") {
-                contenedorChat.style.display = "flex";
-            }
-        });
-    }
-
-    if (botonCerrarChat && contenedorChat) {
-        // Evento para ocultar la interfaz del chat y regresar a la tienda
-        botonCerrarChat.addEventListener("click", (e) => {
-            e.stopPropagation();
-            contenedorChat.style.display = "none";
-            console.log("Interfaz de Tualito Chat ocultada correctamente.");
-            // Restaurar mascota
-            if (botonMascotaGlobal && currentPage !== 'login') {
-                botonMascotaGlobal.style.display = 'flex';
-            }
-        });
-    }
-
-    // ===== CHAT DEDICADO: Enviar mensaje por texto =====
-    const btnEnviarChat = document.getElementById('btn-tuali-enviar');
-    const inputChat = document.getElementById('input-tuali-texto');
-    if (btnEnviarChat && inputChat) {
-        btnEnviarChat.addEventListener('click', () => enviarMensajeChat());
-        inputChat.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') enviarMensajeChat();
-        });
-    }
-
-    // ===== CHAT DEDICADO: Botón de Micrófono Interno =====
-    const botonMicrofonoChat = document.getElementById("btn-tuali-microfono");
-
-    if (botonMicrofonoChat) {
-        botonMicrofonoChat.addEventListener("click", (e) => {
-            e.stopPropagation(); // Evita conflictos con eventos globales del DOM
-
-            if (!escuchaActiva) {
-                escuchaActiva = true;
-                try {
-                    receptorVoz.start();
-                    botonMicrofonoChat.style.backgroundColor = "#28a745"; // Color verde de actividad
-                    botonMicrofonoChat.style.transform = "scale(1.05)";
-                    console.log("Escucha activa inicializada desde el panel de chat.");
-                } catch (error) {
-                    console.error("El flujo de audio ya se encuentra inicializado:", error);
-                }
-            } else {
-                escuchaActiva = false;
-                receptorVoz.stop();
-                botonMicrofonoChat.style.backgroundColor = "#e3120b"; // Retorno al rojo institucional
-                botonMicrofonoChat.style.transform = "scale(1)";
-                console.log("Escucha activa finalizada por el usuario.");
-            }
-        });
-    }
 });
 
 // ============================================================
-// NAVEGACIÓN
+// NAVEGACIÓN (la mascota SIEMPRE permanece visible excepto en login)
 // ============================================================
 function navigateTo(page) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -261,7 +261,8 @@ function navigateTo(page) {
         if (mascota) mascota.style.display = 'none';
     } else if (page === 'carrito') {
         bottomNav.style.display = 'none';
-        if (mascota) mascota.style.display = 'none';
+        // Mascota VISIBLE incluso en carrito
+        if (mascota) mascota.style.display = 'flex';
     } else {
         bottomNav.style.display = 'flex';
         if (mascota) mascota.style.display = 'flex';
@@ -269,7 +270,6 @@ function navigateTo(page) {
 
     if (page === 'catalogo') renderProducts();
     if (page === 'carrito') renderCart();
-
     document.body.dataset.screen = page;
     currentPage = page;
 }
@@ -288,12 +288,17 @@ function renderProducts() {
     const grid = document.getElementById('products-grid');
     if (!grid) return;
     grid.innerHTML = getFilteredProducts().map(p => `
-        <div class="product-card"><${p.promo ? `<div class="product-promo-badge">${p.promo}</div>` : ''}
+        <div class="product-card">
+            ${p.promo ? `<div class="product-promo-badge">${p.promo}</div>` : ''}
             <div class="product-card-img">${p.emoji}</div>
             <div class="product-card-name">${p.name}</div>
             <div class="product-card-unit">${p.unit}</div>
             <div class="product-card-price">$${p.price}</div>
-            <div class="qty-control"><button class="qty-btn" onclick="updateProductQty(${p.id},-1)">−</button><span class="qty-value" id="qty-${p.id}">${getCartQty(p.id)}</span><button class="qty-btn" onclick="updateProductQty(${p.id},1)">+</button></div>
+            <div class="qty-control">
+                <button class="qty-btn" onclick="updateProductQty(${p.id},-1)">−</button>
+                <span class="qty-value" id="qty-${p.id}">${getCartQty(p.id)}</span>
+                <button class="qty-btn" onclick="updateProductQty(${p.id},1)">+</button>
+            </div>
         </div>`).join('');
 }
 
@@ -364,7 +369,7 @@ function updateCartItemQty(id, delta) {
 
 function confirmOrder() {
     if (!cart.length) return;
-    showToast('Pedido confirmado. Se le notificará cuando salga a ruta.');
+    showToast('Pedido confirmado.');
     cart = []; updateCartBadge();
     setTimeout(() => navigateTo('pedidos'), 1500);
 }
@@ -377,41 +382,17 @@ function showToast(msg) {
     setTimeout(() => t.classList.remove('show'), 2500);
 }
 
-
-
 // ============================================================
-// CHAT DEDICADO DE TUALITO
+// CHAT DEDICADO
 // ============================================================
-
-function abrirChatDedicado() {
-    const chatContainer = document.getElementById('tuali-chat-container');
-    if (!chatContainer) return;
-    chatContainer.style.display = 'flex';
-    const mascota = document.getElementById('tuali-mascota-global');
-    if (mascota) mascota.style.display = 'none';
-    console.log("Interfaz de Tualito Chat desplegada formalmente.");
-}
-
-function cerrarChatDedicado() {
-    const chatContainer = document.getElementById('tuali-chat-container');
-    if (chatContainer) chatContainer.style.display = 'none';
-    const mascota = document.getElementById('tuali-mascota-global');
-    if (mascota && currentPage !== 'login' && currentPage !== 'carrito') {
-        mascota.style.display = 'flex';
-    }
-    console.log("Interfaz de Tualito Chat ocultada correctamente.");
-}
-
 function enviarMensajeChat() {
     const input = document.getElementById('input-tuali-texto');
     if (!input || !input.value.trim()) return;
     const texto = input.value.trim();
     input.value = '';
 
-    // Mostrar burbuja del usuario
     agregarBurbujaChat('usuario', texto);
 
-    // Enviar al backend
     fetch('/api/tuali-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -419,11 +400,11 @@ function enviarMensajeChat() {
     })
     .then(res => res.json())
     .then(data => {
-        const respuesta = data.response || data.respuesta || "Solicitud registrada. Se procesará en breve.";
+        const respuesta = data.response || data.respuesta || "Solicitud registrada.";
         agregarBurbujaChat('ai', respuesta);
     })
     .catch(() => {
-        agregarBurbujaChat('ai', 'Se presentó un inconveniente de conexión. Intente nuevamente en un momento.');
+        agregarBurbujaChat('ai', 'Error de conexión. Intente nuevamente.');
     });
 }
 
@@ -433,7 +414,7 @@ function agregarBurbujaChat(tipo, texto) {
     const burbuja = document.createElement('div');
     burbuja.style.cssText = tipo === 'ai'
         ? 'background-color:#f1f1f1;padding:10px;border-radius:8px;margin-bottom:10px;max-width:80%;line-height:1.4;'
-        : 'background-color:#e3120b;color:white;padding:10px;border-radius:8px;margin-bottom:10px;max-width:80%;margin-left:auto;line-height:1.4;';
+        : 'background-color:#e3120b;color:white;padding:10px;border-radius:8px;margin-bottom:10px;max-width:80%;margin-left:auto;line-height:1.4;text-align:right;';
     burbuja.innerHTML = tipo === 'ai' ? `<strong>Tualito:</strong> ${texto}` : texto;
     contenedor.appendChild(burbuja);
     contenedor.scrollTop = contenedor.scrollHeight;
