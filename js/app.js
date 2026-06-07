@@ -191,6 +191,25 @@ document.addEventListener("DOMContentLoaded", () => {
             if (e.key === 'Enter') enviarMensajeChat();
         });
     }
+
+    // ===== CHAT DEDICADO: Botón de Micrófono Interno =====
+    const botonMicrofonoChat = document.getElementById("btn-tuali-microfono");
+
+    if (botonMicrofonoChat) {
+        botonMicrofonoChat.addEventListener("click", () => {
+            if (!escuchaActiva) {
+                escuchaActiva = true;
+                receptorVoz.start();
+                botonMicrofonoChat.style.backgroundColor = "#28a745";
+                console.log("Micrófono del chat activado por el usuario.");
+            } else {
+                escuchaActiva = false;
+                receptorVoz.stop();
+                botonMicrofonoChat.style.backgroundColor = "#e3120b";
+                console.log("Micrófono del chat desactivado por el usuario.");
+            }
+        });
+    }
 });
 
 // ============================================================

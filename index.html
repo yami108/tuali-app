@@ -173,10 +173,14 @@
                 <strong>Tualito:</strong> Saludos. ¿En qué puedo asistirle el día de hoy con la gestión de su negocio?
             </div>
         </div>
-        <!-- Controles de Entrada (Texto y Voz) -->
-        <div style="padding: 10px; border-top: 1px solid #ddd; display: flex; gap: 10px; background-color: white;">
+        <!-- Controles de Entrada Actualizados (Texto, Micrófono y Enviar) -->
+        <div style="padding: 10px; border-top: 1px solid #ddd; display: flex; gap: 10px; background-color: white; align-items: center;">
             <input type="text" id="input-tuali-texto" placeholder="Escriba su consulta aquí..." style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
-            <button id="btn-tuali-enviar" style="background-color: #e3120b; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer;">Enviar</button>
+            <!-- Botón de Micrófono Institucional -->
+            <button id="btn-tuali-microfono" style="background-color: #e3120b; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: background-color 0.3s;">
+                🎤
+            </button>
+            <button id="btn-tuali-enviar" style="background-color: #e3120b; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; height: 40px;">Enviar</button>
         </div>
     </div>
 
