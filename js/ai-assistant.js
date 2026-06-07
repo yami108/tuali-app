@@ -202,22 +202,97 @@ function addMessageToChat(sender, text, actions = []) {
 }
 
 function initVoiceRecognition() {
-  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) return false;
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    console.log('Speech Recognition no disponible');
+    return false;
+  }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognition = new SR();
   recognition.lang = 'es-MX';
   recognition.continuous = false;
-  recognition.interimResults = false;
-  recognition.onstart = () => { isListening = true; document.getElementById('ai-voice-btn')?.classList.add('listening'); document.getElementById('ai-voice-status').style.display = 'flex'; };
-  recognition.onresult = (e) => { const t = e.results[0][0].transcript; sendAIMessage(t); };
-  recognition.onerror = () => stopListening();
-  recognition.onend = () => stopListening();
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = () => {
+    isListening = true;
+    document.getElementById('ai-voice-btn')?.classList.add('listening');
+    const vs = document.getElementById('ai-voice-status');
+    if (vs) vs.style.display = 'flex';
+    showToast('🎙️ Escuchando... habla ahora');
+  };
+
+  recognition.onresult = (e) => {
+    let finalTranscript = '';
+    let interimTranscript = '';
+
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const transcript = e.results[i][0].transcript;
+      if (e.results[i].isFinal) {
+        finalTranscript += transcript;
+      } else {
+        interimTranscript += transcript;
+      }
+    }
+
+    // Mostrar texto intermedio en el input
+    const input = document.getElementById('ai-input');
+    if (input && interimTranscript) {
+      input.value = interimTranscript;
+    }
+
+    // Cuando hay resultado final, enviarlo
+    if (finalTranscript) {
+      if (input) input.value = '';
+      sendAIMessage(finalTranscript);
+    }
+  };
+
+  recognition.onerror = (e) => {
+    console.log('Voice error:', e.error);
+    stopListening();
+    if (e.error === 'not-allowed') {
+      showToast('⚠️ Permite el acceso al microfono en tu navegador');
+      addMessageToChat('ai', '⚠️ **No tengo acceso al micrófono.**\n\nPara usar comandos de voz:\n1. Abre desde **https://yami108.github.io/tuali-app/**\n2. Permite el acceso al micrófono cuando el navegador lo pida\n3. Si lo bloqueaste, haz clic en el candado 🔒 de la barra de dirección y activa "Micrófono"\n\nMientras tanto, puedes escribirme aquí abajo. 👇', []);
+    } else if (e.error === 'no-speech') {
+      showToast('No escuché nada, intenta de nuevo');
+    } else if (e.error === 'network') {
+      showToast('⚠️ Se necesita conexión a internet para voz');
+    } else {
+      showToast('Error de voz: ' + e.error);
+    }
+  };
+
+  recognition.onend = () => {
+    stopListening();
+  };
+
   return true;
 }
 
 function toggleVoice() {
-  if (!recognition && !initVoiceRecognition()) { showToast('Tu navegador no soporta voz'); return; }
-  if (isListening) { recognition.stop(); } else { recognition.start(); }
+  // Check if protocol supports voice (needs https or localhost)
+  if (window.location.protocol === 'file:') {
+    showToast('⚠️ La voz solo funciona desde un servidor (GitHub Pages)');
+    addMessageToChat('ai', '⚠️ **El reconocimiento de voz necesita HTTPS.**\n\nAbre la app desde:\n🌐 **https://yami108.github.io/tuali-app/**\n\nDesde archivos locales (file://) el navegador bloquea el micrófono por seguridad.\n\nMientras tanto puedes escribirme aquí. 👇', []);
+    return;
+  }
+
+  if (!recognition && !initVoiceRecognition()) {
+    showToast('Tu navegador no soporta reconocimiento de voz');
+    return;
+  }
+
+  if (isListening) {
+    recognition.stop();
+  } else {
+    try {
+      recognition.start();
+    } catch(e) {
+      // Si ya estaba corriendo, reiniciar
+      recognition.stop();
+      setTimeout(() => recognition.start(), 200);
+    }
+  }
 }
 
 function stopListening() {
