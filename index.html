@@ -160,24 +160,23 @@
         <div class="toast" id="toast"></div>
     </div>
 
-    <!-- ===== CHAT DEDICADO DE TUALITO (Pantalla completa oculta por defecto) ===== -->
-    <div id="tuali-chat-container" style="display:none;">
-        <div class="status-bar"><span class="status-bar-time">9:41</span><div class="status-bar-icons"><i class="fas fa-signal"></i><i class="fas fa-wifi"></i><i class="fas fa-battery-full"></i></div></div>
-        <div class="app-header">
-            <div class="ai-header-info">
-                <div class="ai-avatar-header"><div class="corcholata-mini">T</div></div>
-                <div class="ai-header-text"><span class="ai-header-name">Tualito</span><span class="ai-header-status">En linea</span></div>
-            </div>
-            <div class="app-header-actions">
-                <button class="header-icon-btn" id="tuali-chat-cerrar" style="background:transparent;"><i class="fas fa-times"></i></button>
+    <!-- Vista Modal del Chat Dedicado de Tualito -->
+    <div id="tuali-chat-container" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #ffffff; z-index: 10000; flex-direction: column;">
+        <!-- Encabezado Institucional -->
+        <div style="background-color: #e3120b; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold;">
+            <span>🤖 Tualito Chat - Asistente Formal</span>
+            <button id="btn-cerrar-tuali-chat" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;">✕</button>
+        </div>
+        <!-- Historial de Mensajes -->
+        <div id="tuali-historial-chat" style="flex: 1; padding: 15px; overflow-y: auto; background-color: #f7f7f7; font-family: Arial, sans-serif;">
+            <div style="background-color: #f1f1f1; padding: 10px; border-radius: 8px; margin-bottom: 10px; max-width: 80%; line-height: 1.4;">
+                <strong>Tualito:</strong> Saludos. ¿En qué puedo asistirle el día de hoy con la gestión de su negocio?
             </div>
         </div>
-        <div class="tuali-chat-body">
-            <div class="ai-chat-messages" id="tuali-chat-mensajes"></div>
-            <div class="ai-chat-input">
-                <input type="text" id="tuali-chat-input" placeholder="Escriba su solicitud...">
-                <button class="ai-send-btn" id="tuali-chat-enviar"><i class="fas fa-paper-plane"></i></button>
-            </div>
+        <!-- Controles de Entrada (Texto y Voz) -->
+        <div style="padding: 10px; border-top: 1px solid #ddd; display: flex; gap: 10px; background-color: white;">
+            <input type="text" id="input-tuali-texto" placeholder="Escriba su consulta aquí..." style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+            <button id="btn-tuali-enviar" style="background-color: #e3120b; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer;">Enviar</button>
         </div>
     </div>
 

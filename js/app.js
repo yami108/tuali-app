@@ -149,17 +149,42 @@ document.addEventListener("DOMContentLoaded", () => {
         if (e.key === 'Enter') document.getElementById('login-code').focus();
     });
 
-    // ===== CHAT DEDICADO: Botón de cierre =====
-    const btnCerrarChat = document.getElementById('tuali-chat-cerrar');
-    if (btnCerrarChat) {
-        btnCerrarChat.addEventListener('click', () => {
-            cerrarChatDedicado();
+    // ===== CONTROL DE NAVEGACIÓN DEL CHAT DEDICADO =====
+    const contenedorChat = document.getElementById("tuali-chat-container");
+    const botonCerrarChat = document.getElementById("btn-cerrar-tuali-chat");
+    const botonMascotaGlobal = document.getElementById("tuali-mascota-global");
+
+    if (botonMascotaGlobal && contenedorChat) {
+        // Evento para abrir el chat dedicado con doble clic sobre la mascota
+        botonMascotaGlobal.addEventListener("dblclick", () => {
+            contenedorChat.style.display = "flex";
+            console.log("Interfaz de Tualito Chat desplegada formalmente.");
+        });
+
+        // Evento alternativo: Un clic simple despliega el chat si el bocadillo está activo
+        botonMascotaGlobal.addEventListener("click", () => {
+            if (contenedorChat.style.display === "none" || contenedorChat.style.display === "") {
+                contenedorChat.style.display = "flex";
+            }
+        });
+    }
+
+    if (botonCerrarChat && contenedorChat) {
+        // Evento para ocultar la interfaz del chat y regresar a la tienda
+        botonCerrarChat.addEventListener("click", (e) => {
+            e.stopPropagation();
+            contenedorChat.style.display = "none";
+            console.log("Interfaz de Tualito Chat ocultada correctamente.");
+            // Restaurar mascota
+            if (botonMascotaGlobal && currentPage !== 'login') {
+                botonMascotaGlobal.style.display = 'flex';
+            }
         });
     }
 
     // ===== CHAT DEDICADO: Enviar mensaje por texto =====
-    const btnEnviarChat = document.getElementById('tuali-chat-enviar');
-    const inputChat = document.getElementById('tuali-chat-input');
+    const btnEnviarChat = document.getElementById('btn-tuali-enviar');
+    const inputChat = document.getElementById('input-tuali-texto');
     if (btnEnviarChat && inputChat) {
         btnEnviarChat.addEventListener('click', () => enviarMensajeChat());
         inputChat.addEventListener('keypress', (e) => {
@@ -315,28 +340,23 @@ function abrirChatDedicado() {
     const chatContainer = document.getElementById('tuali-chat-container');
     if (!chatContainer) return;
     chatContainer.style.display = 'flex';
-    // Ocultar mascota mientras el chat está abierto
     const mascota = document.getElementById('tuali-mascota-global');
     if (mascota) mascota.style.display = 'none';
-    // Mensaje de bienvenida si el chat está vacío
-    const mensajes = document.getElementById('tuali-chat-mensajes');
-    if (mensajes && mensajes.children.length === 0) {
-        agregarBurbujaChat('ai', 'Bienvenido al canal de atención Tualito. ¿En qué puedo asistirle el día de hoy?');
-    }
+    console.log("Interfaz de Tualito Chat desplegada formalmente.");
 }
 
 function cerrarChatDedicado() {
     const chatContainer = document.getElementById('tuali-chat-container');
     if (chatContainer) chatContainer.style.display = 'none';
-    // Restaurar la mascota
     const mascota = document.getElementById('tuali-mascota-global');
     if (mascota && currentPage !== 'login' && currentPage !== 'carrito') {
         mascota.style.display = 'flex';
     }
+    console.log("Interfaz de Tualito Chat ocultada correctamente.");
 }
 
 function enviarMensajeChat() {
-    const input = document.getElementById('tuali-chat-input');
+    const input = document.getElementById('input-tuali-texto');
     if (!input || !input.value.trim()) return;
     const texto = input.value.trim();
     input.value = '';
@@ -361,11 +381,13 @@ function enviarMensajeChat() {
 }
 
 function agregarBurbujaChat(tipo, texto) {
-    const contenedor = document.getElementById('tuali-chat-mensajes');
+    const contenedor = document.getElementById('tuali-historial-chat');
     if (!contenedor) return;
     const burbuja = document.createElement('div');
-    burbuja.className = tipo === 'ai' ? 'burbuja-ai' : 'burbuja-usuario';
-    burbuja.textContent = texto;
+    burbuja.style.cssText = tipo === 'ai'
+        ? 'background-color:#f1f1f1;padding:10px;border-radius:8px;margin-bottom:10px;max-width:80%;line-height:1.4;'
+        : 'background-color:#e3120b;color:white;padding:10px;border-radius:8px;margin-bottom:10px;max-width:80%;margin-left:auto;line-height:1.4;';
+    burbuja.innerHTML = tipo === 'ai' ? `<strong>Tualito:</strong> ${texto}` : texto;
     contenedor.appendChild(burbuja);
     contenedor.scrollTop = contenedor.scrollHeight;
 }
