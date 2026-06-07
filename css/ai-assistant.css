@@ -4,18 +4,110 @@
    ============================================ */
 
 /* ===== TUALITO WIDGET (Persistente en TODAS las pantallas) ===== */
-.tualito-widget {
+.tualito-widget,
+.mascota-contenedor {
   position: fixed;
-  bottom: 75px;
+  bottom: 80px;
   right: 16px;
-  z-index: 950;
+  z-index: 9999;
   display: none;
   flex-direction: column;
   align-items: flex-end;
   gap: 8px;
   transition: all 0.3s ease;
+  pointer-events: auto;
 }
-.tualito-widget.visible { display: flex; }
+.tualito-widget.visible,
+.mascota-contenedor { display: flex; }
+
+/* Asegurar que la mascota NO bloquea inputs debajo */
+#tuali-mascota-global {
+  position: fixed;
+  bottom: 80px;
+  right: 16px;
+  z-index: 9999;
+  pointer-events: auto;
+}
+#tuali-mascota-global * {
+  pointer-events: auto;
+}
+
+/* Asset imagen de la corcholata */
+#tuali-asset {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(227,6,19,0.35);
+  transition: transform 0.2s;
+  object-fit: cover;
+}
+#tuali-asset:hover { transform: scale(1.05); }
+#tuali-asset:active { transform: scale(0.9); }
+
+/* Fallback visual si la imagen no carga */
+.corcholata-fallback {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #FF3B30, #B8050F);
+  border: 3px solid #8B0000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(227,6,19,0.35), inset 0 -3px 6px rgba(0,0,0,0.2);
+  outline: 2px dashed rgba(255,255,255,0.3);
+  outline-offset: -6px;
+  transition: transform 0.2s;
+}
+.corcholata-fallback:hover { transform: scale(1.05); }
+.corcholata-fallback:active { transform: scale(0.9); }
+.corcholata-fallback .corcholata-eyes { display: flex; gap: 8px; }
+.corcholata-fallback .corcholata-eyes span { font-size: 10px; color: white; text-shadow: 0 0 4px rgba(255,255,255,0.8); }
+.corcholata-fallback .corcholata-mouth { font-size: 14px; color: white; font-weight: 700; line-height: 1; }
+
+/* Bocadillo formal (globo de diálogo) */
+#tuali-bocadillo,
+.bocadillo-formal {
+  position: absolute;
+  bottom: 72px;
+  right: 0;
+  background: #FFFFFF;
+  border: 1px solid #E0E0E0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  max-width: 260px;
+  min-width: 180px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #1A1A2E;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  pointer-events: auto;
+  z-index: 10000;
+  word-wrap: break-word;
+}
+#tuali-bocadillo::after,
+.bocadillo-formal::after {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  right: 22px;
+  width: 12px;
+  height: 12px;
+  background: #FFFFFF;
+  border-right: 1px solid #E0E0E0;
+  border-bottom: 1px solid #E0E0E0;
+  transform: rotate(45deg);
+}
+
+/* Estado de grabación activa */
+#tuali-mascota-global.grabando-active #tuali-asset,
+#tuali-mascota-global.grabando-active .corcholata-fallback {
+  box-shadow: 0 0 0 0 rgba(227,6,19,0.6);
+  animation: tualitoListen 1.2s ease-in-out infinite;
+}
 
 /* Burbuja de contexto (tooltip estilizado) */
 .tualito-bubble {
@@ -302,3 +394,23 @@
 .notif-title { font-size: 13px; font-weight: 700; }
 .notif-text { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
 .notif-close { background: none; border: none; font-size: 16px; color: var(--text-muted); cursor: pointer; padding: 4px; }
+
+
+/* ===== GARANTIZAR QUE INPUTS NO ESTÉN BLOQUEADOS ===== */
+#app-container,
+.app-container {
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+}
+#app-container input,
+#app-container button,
+.app-container input,
+.app-container button,
+.search-bar input,
+.ai-chat-input input,
+.input-field {
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 1;
+}
