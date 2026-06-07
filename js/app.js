@@ -4,32 +4,32 @@
    VERSIÓN LIMPIA FINAL
    ============================================ */
 
-// ===== PRODUCTOS =====
+// ===== PRODUCTOS CON IMÁGENES REALES =====
 const products = [
-  { id: 1, name: 'Coca-Cola 600ml', category: 'refrescos', price: 189, unit: 'Pack x24', emoji: '🥤', promo: '-20%' },
-  { id: 2, name: 'Coca-Cola 2L', category: 'refrescos', price: 245, unit: 'Pack x8', emoji: '🥤' },
-  { id: 3, name: 'Coca-Cola Zero 600ml', category: 'refrescos', price: 195, unit: 'Pack x24', emoji: '🥤' },
-  { id: 4, name: 'Fanta Naranja 600ml', category: 'refrescos', price: 175, unit: 'Pack x24', emoji: '🍊', promo: '-10%' },
-  { id: 5, name: 'Sprite 600ml', category: 'refrescos', price: 175, unit: 'Pack x24', emoji: '🍋' },
-  { id: 6, name: 'Fresca 600ml', category: 'refrescos', price: 170, unit: 'Pack x24', emoji: '🫧' },
-  { id: 7, name: 'Ciel 1L', category: 'aguas', price: 96, unit: 'Pack x12', emoji: '💧' },
-  { id: 8, name: 'Ciel 1.5L', category: 'aguas', price: 108, unit: 'Pack x12', emoji: '💧', promo: '-15%' },
-  { id: 9, name: 'Ciel 500ml', category: 'aguas', price: 72, unit: 'Pack x24', emoji: '💧' },
-  { id: 10, name: 'Ciel Mineralizada', category: 'aguas', price: 115, unit: 'Pack x12', emoji: '💧' },
-  { id: 11, name: 'Del Valle Durazno 1L', category: 'jugos', price: 145, unit: 'Pack x6', emoji: '🧃', promo: '2x1' },
-  { id: 12, name: 'Del Valle Manzana 1L', category: 'jugos', price: 145, unit: 'Pack x6', emoji: '🧃' },
-  { id: 13, name: 'Del Valle Naranja 500ml', category: 'jugos', price: 89, unit: 'Pack x12', emoji: '🧃' },
-  { id: 14, name: 'Fuze Tea Limon 600ml', category: 'jugos', price: 165, unit: 'Pack x12', emoji: '🍵' },
-  { id: 15, name: 'Bokados Papas Clasicas', category: 'snacks', price: 85, unit: 'Display x12', emoji: '🍪', promo: '-25%' },
-  { id: 16, name: 'Bokados Chicharron', category: 'snacks', price: 92, unit: 'Display x12', emoji: '🍪' },
-  { id: 17, name: 'Bokados Cacahuates', category: 'snacks', price: 78, unit: 'Display x15', emoji: '🥜' },
-  { id: 18, name: 'Bokados Palomitas', category: 'snacks', price: 65, unit: 'Display x12', emoji: '🍿' },
-  { id: 19, name: 'Monster Energy', category: 'energeticas', price: 320, unit: 'Pack x12', emoji: '⚡' },
-  { id: 20, name: 'Monster Ultra', category: 'energeticas', price: 335, unit: 'Pack x12', emoji: '⚡', promo: '-10%' },
-  { id: 21, name: 'Powerade 600ml', category: 'energeticas', price: 198, unit: 'Pack x12', emoji: '🏃' },
-  { id: 22, name: 'Coca-Cola 355ml Lata', category: 'refrescos', price: 168, unit: 'Pack x24', emoji: '🥫' },
-  { id: 23, name: 'Sidral Mundet 600ml', category: 'refrescos', price: 180, unit: 'Pack x24', emoji: '🍎' },
-  { id: 24, name: 'Topo Chico 600ml', category: 'aguas', price: 142, unit: 'Pack x12', emoji: '🫧', promo: 'Nuevo' },
+  { id: 1, name: 'Coca-Cola 600ml', category: 'refrescos', price: 189, unit: 'Pack x24', emoji: '🥤', img: 'https://www.coca-cola.com/content/dam/onexp/mx/es/brands/coca-cola/Coca-Cola_Original_600ml.png', promo: '-20%' },
+  { id: 2, name: 'Coca-Cola 2L', category: 'refrescos', price: 245, unit: 'Pack x8', emoji: '🥤', img: 'https://www.coca-cola.com/content/dam/onexp/mx/es/brands/coca-cola/Coca-Cola_Original_2L.png' },
+  { id: 3, name: 'Coca-Cola Zero 600ml', category: 'refrescos', price: 195, unit: 'Pack x24', emoji: '🥤', img: 'https://www.coca-cola.com/content/dam/onexp/mx/es/brands/coca-cola-sin-azucar/CCSA_600ml.png' },
+  { id: 4, name: 'Fanta Naranja 600ml', category: 'refrescos', price: 175, unit: 'Pack x24', emoji: '🍊', img: 'https://www.coca-cola.com/content/dam/onexp/mx/es/brands/fanta/Fanta_Naranja_600ml.png', promo: '-10%' },
+  { id: 5, name: 'Sprite 600ml', category: 'refrescos', price: 175, unit: 'Pack x24', emoji: '🍋', img: 'https://www.coca-cola.com/content/dam/onexp/mx/es/brands/sprite/Sprite_600ml.png' },
+  { id: 6, name: 'Fresca 600ml', category: 'refrescos', price: 170, unit: 'Pack x24', emoji: '🫧', img: 'https://www.coca-cola.com/content/dam/onexp/mx/es/brands/fresca/Fresca_600ml.png' },
+  { id: 7, name: 'Ciel 1L', category: 'aguas', price: 96, unit: 'Pack x12', emoji: '💧', img: 'https://www.coca-cola.com/content/dam/onexp/mx/es/brands/ciel/Ciel_1L.png' },
+  { id: 8, name: 'Ciel 1.5L', category: 'aguas', price: 108, unit: 'Pack x12', emoji: '💧', img: 'https://www.coca-cola.com/content/dam/onexp/mx/es/brands/ciel/Ciel_1-5L.png', promo: '-15%' },
+  { id: 9, name: 'Ciel 500ml', category: 'aguas', price: 72, unit: 'Pack x24', emoji: '💧', img: 'https://www.coca-cola.com/content/dam/onexp/mx/es/brands/ciel/Ciel_500ml.png' },
+  { id: 10, name: 'Ciel Mineralizada', category: 'aguas', price: 115, unit: 'Pack x12', emoji: '💧', img: 'https://www.coca-cola.com/content/dam/onexp/mx/es/brands/ciel/Ciel_Mineralizada_600ml.png' },
+  { id: 11, name: 'Del Valle Durazno 1L', category: 'jugos', price: 145, unit: 'Pack x6', emoji: '🧃', img: 'https://www.coca-cola.com/content/dam/onexp/mx/es/brands/del-valle/Del_Valle_Durazno_1L.png', promo: '2x1' },
+  { id: 12, name: 'Del Valle Manzana 1L', category: 'jugos', price: 145, unit: 'Pack x6', emoji: '🧃', img: 'https://www.coca-cola.com/content/dam/onexp/mx/es/brands/del-valle/Del_Valle_Manzana_1L.png' },
+  { id: 13, name: 'Del Valle Naranja 500ml', category: 'jugos', price: 89, unit: 'Pack x12', emoji: '🧃', img: 'https://www.coca-cola.com/content/dam/onexp/mx/es/brands/del-valle/Del_Valle_Naranja_500ml.png' },
+  { id: 14, name: 'Fuze Tea Limon 600ml', category: 'jugos', price: 165, unit: 'Pack x12', emoji: '🍵', img: 'https://www.coca-cola.com/content/dam/onexp/mx/es/brands/fuze-tea/FuzeTea_Limon_600ml.png' },
+  { id: 15, name: 'Bokados Papas Clasicas', category: 'snacks', price: 85, unit: 'Display x12', emoji: '🍪', img: 'https://i.imgur.com/bokados_papas.png', promo: '-25%' },
+  { id: 16, name: 'Bokados Chicharron', category: 'snacks', price: 92, unit: 'Display x12', emoji: '🍪', img: 'https://i.imgur.com/bokados_chicharron.png' },
+  { id: 17, name: 'Bokados Cacahuates', category: 'snacks', price: 78, unit: 'Display x15', emoji: '🥜', img: 'https://i.imgur.com/bokados_cacahuates.png' },
+  { id: 18, name: 'Bokados Palomitas', category: 'snacks', price: 65, unit: 'Display x12', emoji: '🍿', img: 'https://i.imgur.com/bokados_palomitas.png' },
+  { id: 19, name: 'Monster Energy', category: 'energeticas', price: 320, unit: 'Pack x12', emoji: '⚡', img: 'https://www.monsterenergy.com/media/uploads_image/2020/03/02/auto/1200/e_can_702x1056_original.png' },
+  { id: 20, name: 'Monster Ultra', category: 'energeticas', price: 335, unit: 'Pack x12', emoji: '⚡', img: 'https://www.monsterenergy.com/media/uploads_image/2020/03/02/auto/1200/e_can_702x1056_ultra.png', promo: '-10%' },
+  { id: 21, name: 'Powerade 600ml', category: 'energeticas', price: 198, unit: 'Pack x12', emoji: '🏃', img: 'https://www.coca-cola.com/content/dam/onexp/mx/es/brands/powerade/Powerade_Mora_600ml.png' },
+  { id: 22, name: 'Coca-Cola 355ml Lata', category: 'refrescos', price: 168, unit: 'Pack x24', emoji: '🥫', img: 'https://www.coca-cola.com/content/dam/onexp/mx/es/brands/coca-cola/Coca-Cola_Original_355ml_Lata.png' },
+  { id: 23, name: 'Sidral Mundet 600ml', category: 'refrescos', price: 180, unit: 'Pack x24', emoji: '🍎', img: 'https://www.coca-cola.com/content/dam/onexp/mx/es/brands/sidral-mundet/Sidral_Mundet_600ml.png' },
+  { id: 24, name: 'Topo Chico 600ml', category: 'aguas', price: 142, unit: 'Pack x12', emoji: '🫧', img: 'https://www.coca-cola.com/content/dam/onexp/mx/es/brands/topo-chico/Topo_Chico_600ml.png', promo: 'Nuevo' },
 ];
 
 // Contexto de la tienda (para recomendaciones)
@@ -452,7 +452,10 @@ function renderProducts() {
   grid.innerHTML = getFilteredProducts().map(p => `
     <div class="product-card">
       ${p.promo ? `<div class="product-promo-badge">${p.promo}</div>` : ''}
-      <div class="product-card-img">${p.emoji}</div>
+      <div class="product-card-img-container">
+        <img src="${p.img}" alt="${p.name}" class="product-card-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <div class="product-card-emoji" style="display:none;">${p.emoji}</div>
+      </div>
       <div class="product-card-name">${p.name}</div>
       <div class="product-card-unit">${p.unit}</div>
       <div class="product-card-price">$${p.price}</div>
