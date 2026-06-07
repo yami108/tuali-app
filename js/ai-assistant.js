@@ -168,7 +168,7 @@ function initVoiceSystem() {
     setTualitoState('listening');
     updateVoiceUI(true);
     // Agregar clase de grabación a la mascota global
-    const mascota = document.getElementById('tuali-mascota-flotante');
+    const mascota = document.getElementById('tuali-mascota-global');
     if (mascota) mascota.classList.add('grabando-active');
     showToast('🎙️ Tualito está escuchando... habla ahora');
   };
@@ -208,7 +208,7 @@ function initVoiceSystem() {
   recognition.onerror = (event) => {
     console.error('Speech recognition error:', event.error);
     // Quitar clase visual
-    const mascota = document.getElementById('tuali-mascota-flotante');
+    const mascota = document.getElementById('tuali-mascota-global');
     if (mascota) mascota.classList.remove('grabando-active');
 
     switch (event.error) {
@@ -244,7 +244,7 @@ function initVoiceSystem() {
   // SOLUCIÓN AL BUG PRINCIPAL: Reinicio automático continuo
   recognition.onend = () => {
     isListening = false;
-    const mascota = document.getElementById('tuali-mascota-flotante');
+    const mascota = document.getElementById('tuali-mascota-global');
     if (mascota) mascota.classList.remove('grabando-active');
 
     // Si la vista de chat de voz sigue abierta Y el usuario quiere seguir escuchando,
@@ -330,7 +330,7 @@ function stopContinuousListening() {
   isListening = false;
   updateVoiceUI(false);
   setTualitoState('idle');
-  const mascota = document.getElementById('tuali-mascota-flotante');
+  const mascota = document.getElementById('tuali-mascota-global');
   if (mascota) mascota.classList.remove('grabando-active');
   if (recognition) {
     try { recognition.stop(); } catch(_) {}
@@ -782,12 +782,12 @@ function initAI() {
 }
 
 function showTualitoWidget() {
-  const widget = document.getElementById('tuali-mascota-flotante');
+  const widget = document.getElementById('tuali-mascota-global');
   if (widget) widget.classList.add('visible');
 }
 
 function hideTualitoWidget() {
-  const widget = document.getElementById('tuali-mascota-flotante');
+  const widget = document.getElementById('tuali-mascota-global');
   if (widget) widget.classList.remove('visible');
   closeTualitoBubble();
 }
