@@ -339,3 +339,240 @@ function initAI() {
   initVoiceRecognition();
   simulateInventoryNotification();
 }
+
+
+// ===== BACKEND API URL =====
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? `http://${window.location.hostname}:5000`
+  : '';  // Same origin if served from Flask
+
+// ===== BACKEND INTEGRATION =====
+async function sendToBackend(message) {
+  try {
+    const resp = await fetch(`${API_BASE}/api/tuali-chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, context: '' })
+    });
+    if (!resp.ok) throw new Error('Backend no disponible');
+    const data = await resp.json();
+    return data;
+  } catch (e) {
+    console.log('Backend no disponible, usando respuestas locales:', e.message);
+    return null;
+  }
+}
+
+// Override sendAIMessage to try backend first
+const _originalSendAI = sendAIMessage;
+sendAIMessage = function(text = null) {
+  const input = document.getElementById('ai-input');
+  const message = text || (input ? input.value.trim() : '');
+  if (!message) return;
+  if (!text && input) input.value = '';
+  addMessageToChat('user', message);
+
+  // Try backend first
+  sendToBackend(message).then(backendResp => {
+    if (backendResp && backendResp.response) {
+      let actions = [];
+      if (backendResp.action === 'order_created') {
+        actions = [{ label: '📦 Ver carrito', action: 'ai_go_cart' }, { label: '🏠 Inicio', action: 'ai_go_home' }];
+        updateCartBadge();
+      } else {
+        actions = getDefaultActions();
+      }
+      addMessageToChat('ai', backendResp.response, actions);
+    } else {
+      // Fallback local
+      const response = getAIResponse(message);
+      addMessageToChat('ai', response.text, response.actions);
+    }
+  });
+};
+
+// ===== ALERTAS SYSTEM (Fetches from backend) =====
+async function loadAlertas() {
+  const container = document.getElementById('contenedor-alertas-tuali');
+  if (!container) return;
+
+  try {
+    const resp = await fetch(`${API_BASE}/api/alertas`);
+    if (!resp.ok) throw new Error('No alertas');
+    const data = await resp.json();
+
+    container.innerHTML = '';
+
+    // Render alertas de seguridad (confirmación de entrega)
+    data.alertas.filter(a => a.tipo === 'confirmacion_entrega').forEach(alerta => {
+      container.innerHTML += `
+        <div class="alerta-tuali alerta-seguridad" id="alerta-${alerta.id_pedido}">
+          <div class="alerta-tuali-icon">🔔</div>
+          <div class="alerta-tuali-content">
+            <div class="alerta-tuali-title">Confirmar recepción</div>
+            <div class="alerta-tuali-text">${alerta.mensaje}</div>
+            <div class="alerta-tuali-actions">
+              <button class="alerta-tuali-btn alerta-tuali-btn-confirm" onclick="confirmarEntrega(${alerta.id_pedido}, 1)">✅ Sí recibí</button>
+              <button class="alerta-tuali-btn alerta-tuali-btn-report" onclick="confirmarEntrega(${alerta.id_pedido}, -1)">🚨 Reportar</button>
+            </div>
+          </div>
+          <button class="alerta-tuali-close" onclick="this.parentElement.remove()">✕</button>
+        </div>`;
+    });
+
+    // Render alertas de desabasto
+    data.alertas.filter(a => a.tipo === 'desabasto').forEach(alerta => {
+      container.innerHTML += `
+        <div class="alerta-tuali alerta-desabasto">
+          <div class="alerta-tuali-icon">⚠️</div>
+          <div class="alerta-tuali-content">
+            <div class="alerta-tuali-title">Bajo inventario</div>
+            <div class="alerta-tuali-text">${alerta.producto}: ${alerta.stock_actual} unidades (~${alerta.dias_restantes} días)</div>
+            <div class="alerta-tuali-actions">
+              <button class="alerta-tuali-btn alerta-tuali-btn-order" onclick="navigateTo('asistente');setTimeout(()=>sendAIMessage('Pedir ${alerta.producto}'),500)">🛒 Pedir ahora</button>
+              <button class="alerta-tuali-btn alerta-tuali-btn-dismiss" onclick="this.closest('.alerta-tuali').remove()">Después</button>
+            </div>
+          </div>
+          <button class="alerta-tuali-close" onclick="this.parentElement.remove()">✕</button>
+        </div>`;
+    });
+
+    // Mostrar badge en FAB si hay alertas
+    const fabBadge = document.getElementById('ai-fab-badge');
+    if (fabBadge && data.alertas.length > 0) {
+      fabBadge.style.display = 'block';
+    }
+
+  } catch (e) {
+    // Backend no disponible, usar alertas simuladas
+    console.log('Alertas: usando modo local');
+    simulateInventoryNotification();
+  }
+}
+
+async function confirmarEntrega(idPedido, confirmacion) {
+  try {
+    const resp = await fetch(`${API_BASE}/api/confirmar-entrega`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id_pedido: idPedido, confirmacion })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      showToast(data.mensaje);
+      const alertEl = document.getElementById(`alerta-${idPedido}`);
+      if (alertEl) alertEl.remove();
+    }
+  } catch (e) {
+    // Fallback local
+    if (confirmacion === 1) {
+      showToast('✅ Recepción confirmada. +50 puntos Tuali');
+    } else {
+      showToast('🚨 Incidencia reportada. Te contactaremos.');
+    }
+    const alertEl = document.getElementById(`alerta-${idPedido}`);
+    if (alertEl) alertEl.remove();
+  }
+}
+
+// ===== QUICK VOICE ORDER (Botón verde accesible) =====
+function quickVoiceOrder() {
+  const btn = document.getElementById('btn-tuali-voz');
+  if (!btn) return;
+
+  if (window.location.protocol === 'file:') {
+    showToast('⚠️ Voz solo funciona desde GitHub Pages o servidor');
+    navigateTo('asistente');
+    return;
+  }
+
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('Tu navegador no soporta voz');
+    navigateTo('asistente');
+    return;
+  }
+
+  btn.classList.toggle('recording');
+
+  if (btn.classList.contains('recording')) {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const quickRec = new SR();
+    quickRec.lang = 'es-MX';
+    quickRec.continuous = false;
+    quickRec.interimResults = false;
+
+    quickRec.onresult = (e) => {
+      const transcript = e.results[0][0].transcript;
+      btn.classList.remove('recording');
+      showToast('🎙️ "' + transcript + '"');
+      // Navigate to assistant and send the message
+      navigateTo('asistente');
+      setTimeout(() => sendAIMessage(transcript), 600);
+    };
+
+    quickRec.onerror = (e) => {
+      btn.classList.remove('recording');
+      if (e.error === 'not-allowed') {
+        showToast('⚠️ Permite acceso al micrófono');
+      } else {
+        showToast('No escuché nada, intenta de nuevo');
+      }
+    };
+
+    quickRec.onend = () => btn.classList.remove('recording');
+
+    // Request microphone permission first
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => { stream.getTracks().forEach(t => t.stop()); quickRec.start(); showToast('🎙️ Escuchando... habla tu pedido'); })
+        .catch(() => { btn.classList.remove('recording'); showToast('⚠️ Permite el micrófono'); });
+    } else {
+      quickRec.start();
+      showToast('🎙️ Escuchando...');
+    }
+  }
+}
+
+// ===== ENHANCED NOTIFICATIONS =====
+function showInventoryNotification() {
+  const notif = document.getElementById('ai-notification');
+  if (!notif) return;
+  notif.innerHTML = `<div class="notif-icon">📸</div><div class="notif-content"><div class="notif-title">Alerta de inventario</div><div class="notif-text">Tu Coca-Cola 600ml se está acabando (3 unidades)</div></div><button class="notif-close" onclick="event.stopPropagation();closeNotification()">✕</button>`;
+  notif.style.display = 'flex';
+  notif.onclick = () => { closeNotification(); navigateTo('asistente'); setTimeout(() => { aiState = 'inventory_alert'; addMessageToChat('ai', '📸 **Alerta de cámara del refrigerador**\n\nDetecté que tu Coca-Cola 600ml se está acabando (solo quedan 3 unidades).\n\n¿Quieres que haga el pedido ahora?', [{ label: '✅ Sí, pedir', action: 'ai_inventory_yes' }, { label: '🕐 Después', action: 'ai_inventory_no' }]); }, 500); };
+}
+
+function closeNotification() { const n = document.getElementById('ai-notification'); if (n) n.style.display = 'none'; }
+
+function simulateInventoryNotification() { setTimeout(() => { if (currentPage !== 'login') showInventoryNotification(); }, 15000); }
+
+function initAI() {
+  const chat = document.getElementById('ai-chat-messages');
+  if (chat && chat.children.length === 0) {
+    addMessageToChat('ai', '¡Hola Don Carlos! 👋 Soy tu asistente Tuali con IA.\n\nPuedo ayudarte a:\n🛒 Hacer pedidos (texto o voz)\n📊 Recomendarte productos según tu zona y clima\n📸 Avisarte cuando algo se acaba\n🔔 Confirmar entregas y reportar incidencias\n⚡ Confirmar compras con un clic\n\n¿En qué te ayudo?', getDefaultActions());
+  }
+  initVoiceRecognition();
+}
+
+// ===== ADD ai_go_cart and ai_go_home actions =====
+const _originalHandleAction = handleAIAction;
+handleAIAction = function(action) {
+  if (action === 'ai_go_cart') { navigateTo('carrito'); return; }
+  if (action === 'ai_go_home') { navigateTo('home'); return; }
+  _originalHandleAction(action);
+};
+
+// ===== LOAD ALERTS ON HOME PAGE =====
+const _originalNavigateTo = navigateTo;
+// We override in app.js, so let's hook here
+document.addEventListener('DOMContentLoaded', () => {
+  // When home page is shown, load alerts
+  const observer = new MutationObserver(() => {
+    const homePage = document.getElementById('page-home');
+    if (homePage && homePage.classList.contains('active')) {
+      loadAlertas();
+    }
+  });
+  const appContainer = document.querySelector('.app-container');
+  if (appContainer) observer.observe(appContainer, { subtree: true, attributes: true, attributeFilter: ['class'] });
+});

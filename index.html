@@ -89,6 +89,9 @@
       <div class="main-content">
         <div class="page-content">
 
+          <!-- Contenedor de Alertas Tuali AI -->
+          <div id="contenedor-alertas-tuali"></div>
+
           <!-- Pedido Sugerido Banner -->
           <div class="promo-banner">
             <div class="promo-banner-title">📦 Pedido Sugerido</div>
@@ -711,7 +714,12 @@
     <!-- AI Floating Button -->
     <button class="ai-fab" id="ai-fab" style="display:none;" onclick="navigateTo('asistente')">
       🤖
-      <div class="ai-fab-badge"></div>
+      <div class="ai-fab-badge" id="ai-fab-badge" style="display:none;"></div>
+    </button>
+
+    <!-- Botón de Voz Accesible (Adultos Mayores) -->
+    <button id="btn-tuali-voz" class="tuali-voice-fab" style="display:none;" onclick="quickVoiceOrder()">
+      🎤
     </button>
 
     <!-- AI Notification -->

@@ -1,0 +1,591 @@
+"""
+TUALI AI - Backend Server
+Arca Continental - Asistente Inteligente para Tenderos
+Flask + SQLite + Gemini API + OpenWeatherMap
+"""
+
+import os
+import json
+import sqlite3
+import datetime
+import requests
+from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
+
+app = Flask(__name__, static_folder='.', static_url_path='')
+CORS(app)
+
+# ===== CONFIGURATION =====
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
+WEATHER_API_KEY = os.environ.get('OPENWEATHER_API_KEY', '')
+DB_PATH = os.path.join(os.path.dirname(__file__), 'tuali.db')
+
+SYSTEM_PROMPT = """Eres Tuali, el asistente de IA empático de Arca Continental. Tu tono debe ser cálido, paciente, sumamente respetuoso y claro, optimizado para tenderos que son adultos mayores. Utiliza los datos del entorno (clima actual, ubicación y giros comerciales cercanos) y el historial de compras del cliente para aconsejarle qué comprar proactivamente para hacer crecer su negocio.
+
+Reglas:
+- Habla en español mexicano informal pero respetuoso
+- Usa frases cortas y claras
+- Si el tendero pide productos, extrae el nombre y cantidad
+- Si no entiendes algo, pregunta amablemente
+- Ofrece recomendaciones basadas en el clima y la zona
+- Cuando el tendero confirme un pedido, responde con la función registrar_pedido
+"""
+
+# ===== DATABASE INITIALIZATION =====
+def init_db():
+    """Inicializa la base de datos SQLite con el esquema corporativo."""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+
+    c.execute('''CREATE TABLE IF NOT EXISTS pedidos_tuali (
+        id_registro INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_id TEXT NOT NULL,
+        pais TEXT DEFAULT 'Mexico',
+        id_businessun TEXT DEFAULT 'BU-MX-001',
+        business_unit TEXT DEFAULT 'Arca Continental Mexico',
+        cedis TEXT DEFAULT 'CEDIS CDMX Norte',
+        fecha_pedido TEXT,
+        fecha_entrega TEXT,
+        status_final TEXT DEFAULT 'Pendiente',
+        valor_pedido REAL DEFAULT 0,
+        subtotal REAL DEFAULT 0,
+        total REAL DEFAULT 0,
+        confirmado_por_cliente INTEGER DEFAULT 0,
+        productos_json TEXT DEFAULT '[]'
+    )''')
+
+    c.execute('''CREATE TABLE IF NOT EXISTS inventario_tienda (
+        producto TEXT PRIMARY KEY,
+        stock_actual INTEGER DEFAULT 0,
+        ventas_por_dia REAL DEFAULT 0,
+        dias_surtido_cedis INTEGER DEFAULT 2
+    )''')
+
+    c.execute('''CREATE TABLE IF NOT EXISTS entorno_tienda (
+        customer_id TEXT PRIMARY KEY,
+        direccion_fisica TEXT,
+        zonificacion TEXT,
+        latitud REAL DEFAULT 19.4326,
+        longitud REAL DEFAULT -99.1332
+    )''')
+
+    # Insertar datos de ejemplo si las tablas están vacías
+    c.execute("SELECT COUNT(*) FROM inventario_tienda")
+    if c.fetchone()[0] == 0:
+        sample_inventory = [
+            ('Coca-Cola 600ml', 24, 8, 2),
+            ('Coca-Cola 2L', 12, 3, 2),
+            ('Coca-Cola Zero 600ml', 18, 2, 2),
+            ('Fanta Naranja 600ml', 20, 4, 2),
+            ('Sprite 600ml', 15, 3, 2),
+            ('Fresca 600ml', 10, 2, 3),
+            ('Ciel 1L', 30, 10, 2),
+            ('Ciel 1.5L', 20, 5, 2),
+            ('Ciel 500ml', 5, 12, 2),
+            ('Ciel Mineralizada', 8, 2, 3),
+            ('Del Valle Durazno 1L', 6, 4, 3),
+            ('Del Valle Manzana 1L', 8, 3, 3),
+            ('Del Valle Naranja 500ml', 10, 5, 2),
+            ('Fuze Tea Limon 600ml', 12, 3, 2),
+            ('Bokados Papas Clasicas', 15, 6, 3),
+            ('Bokados Chicharron', 10, 3, 3),
+            ('Bokados Cacahuates', 20, 4, 3),
+            ('Bokados Palomitas', 8, 5, 3),
+            ('Monster Energy', 6, 2, 3),
+            ('Monster Ultra', 4, 1, 3),
+            ('Powerade 600ml', 10, 3, 2),
+            ('Coca-Cola 355ml Lata', 24, 5, 2),
+            ('Sidral Mundet 600ml', 12, 2, 3),
+            ('Topo Chico 600ml', 8, 4, 2),
+        ]
+        c.executemany(
+            "INSERT INTO inventario_tienda (producto, stock_actual, ventas_por_dia, dias_surtido_cedis) VALUES (?,?,?,?)",
+            sample_inventory
+        )
+
+    c.execute("SELECT COUNT(*) FROM entorno_tienda")
+    if c.fetchone()[0] == 0:
+        c.execute("""INSERT INTO entorno_tienda (customer_id, direccion_fisica, zonificacion, latitud, longitud)
+                     VALUES ('AC-MX-48291', 'Av. Insurgentes Sur 1234, Col. Centro, CDMX',
+                             'Escuela cercana (Kinder 200m, Primaria 350m), Parque Central 150m, Zona residencial',
+                             19.4326, -99.1332)""")
+
+    # Pedidos de ejemplo con uno pendiente de confirmación
+    c.execute("SELECT COUNT(*) FROM pedidos_tuali")
+    if c.fetchone()[0] == 0:
+        sample_orders = [
+            ('AC-MX-48291', 'Mexico', 'BU-MX-001', 'Arca Continental Mexico', 'CEDIS CDMX Norte',
+             '2024-06-03', '2024-06-05', 'Entregado', 3240, 3085, 3240, 0,
+             '[{"nombre":"Coca-Cola 600ml","qty":2},{"nombre":"Ciel 1L","qty":1}]'),
+            ('AC-MX-48291', 'Mexico', 'BU-MX-001', 'Arca Continental Mexico', 'CEDIS CDMX Norte',
+             '2024-05-27', '2024-05-29', 'Entregado', 4850, 4619, 4850, 1,
+             '[{"nombre":"Coca-Cola 2L","qty":1},{"nombre":"Del Valle Durazno 1L","qty":1}]'),
+            ('AC-MX-48291', 'Mexico', 'BU-MX-001', 'Arca Continental Mexico', 'CEDIS CDMX Norte',
+             '2024-05-20', '2024-05-22', 'Entregado', 2680, 2552, 2680, 1,
+             '[{"nombre":"Fanta Naranja 600ml","qty":2}]'),
+        ]
+        c.executemany(
+            """INSERT INTO pedidos_tuali (customer_id, pais, id_businessun, business_unit, cedis,
+               fecha_pedido, fecha_entrega, status_final, valor_pedido, subtotal, total,
+               confirmado_por_cliente, productos_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            sample_orders
+        )
+
+    conn.commit()
+    conn.close()
+
+
+def get_db():
+    """Obtiene conexión a la base de datos."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+# ===== WEATHER SERVICE =====
+def get_weather(lat=19.4326, lon=-99.1332):
+    """Obtiene clima actual de OpenWeatherMap."""
+    if not WEATHER_API_KEY:
+        return {"temp": 22, "description": "parcialmente nublado", "humidity": 55, "source": "default"}
+    try:
+        url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={WEATHER_API_KEY}&units=metric&lang=es"
+        resp = requests.get(url, timeout=5)
+        data = resp.json()
+        return {
+            "temp": round(data['main']['temp']),
+            "description": data['weather'][0]['description'],
+            "humidity": data['main']['humidity'],
+            "source": "openweathermap"
+        }
+    except Exception:
+        return {"temp": 22, "description": "parcialmente nublado", "humidity": 55, "source": "fallback"}
+
+
+# ===== GEMINI AI SERVICE =====
+def call_gemini(user_message, context=""):
+    """Llama a la API de Gemini 2.5 Flash con function calling."""
+    if not GEMINI_API_KEY:
+        return fallback_ai_response(user_message)
+
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+
+        # Obtener contexto de la tienda
+        conn = get_db()
+        entorno = conn.execute("SELECT * FROM entorno_tienda WHERE customer_id = 'AC-MX-48291'").fetchone()
+        weather = get_weather(entorno['latitud'], entorno['longitud']) if entorno else get_weather()
+
+        # Inventario bajo
+        low_stock = conn.execute("""
+            SELECT producto, stock_actual, ventas_por_dia, dias_surtido_cedis,
+                   CAST(stock_actual AS REAL) / CASE WHEN ventas_por_dia > 0 THEN ventas_por_dia ELSE 1 END as dias_restantes
+            FROM inventario_tienda
+            WHERE CAST(stock_actual AS REAL) / CASE WHEN ventas_por_dia > 0 THEN ventas_por_dia ELSE 1 END <= dias_surtido_cedis
+        """).fetchall()
+        conn.close()
+
+        context_msg = f"""
+CONTEXTO ACTUAL:
+- Tienda: Tienda Don Carlos (AC-MX-48291)
+- Zona: {entorno['zonificacion'] if entorno else 'Col. Centro, CDMX'}
+- Clima ahora: {weather['temp']}°C, {weather['description']}, humedad {weather['humidity']}%
+- Productos con bajo inventario: {', '.join([f"{r['producto']} ({r['stock_actual']} unidades, ~{round(r['dias_restantes'],1)} días)" for r in low_stock]) if low_stock else 'Ninguno crítico'}
+- Día de entrega CEDIS: Lunes y Jueves
+{context}
+"""
+
+        payload = {
+            "system_instruction": {"parts": [{"text": SYSTEM_PROMPT + context_msg}]},
+            "contents": [{"parts": [{"text": user_message}]}],
+            "tools": [{
+                "function_declarations": [{
+                    "name": "registrar_pedido",
+                    "description": "Registra un nuevo pedido de productos para la tienda",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "productos": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "nombre": {"type": "string", "description": "Nombre del producto"},
+                                        "cantidad": {"type": "integer", "description": "Cantidad de packs/displays"}
+                                    },
+                                    "required": ["nombre", "cantidad"]
+                                },
+                                "description": "Lista de productos a pedir"
+                            }
+                        },
+                        "required": ["productos"]
+                    }
+                }]
+            }],
+            "generationConfig": {
+                "temperature": 0.7,
+                "maxOutputTokens": 1024
+            }
+        }
+
+        resp = requests.post(url, json=payload, timeout=30)
+        result = resp.json()
+
+        # Procesar respuesta
+        if 'candidates' in result and len(result['candidates']) > 0:
+            candidate = result['candidates'][0]
+            parts = candidate.get('content', {}).get('parts', [])
+
+            for part in parts:
+                # Si Gemini quiere llamar una función
+                if 'functionCall' in part:
+                    func_call = part['functionCall']
+                    if func_call['name'] == 'registrar_pedido':
+                        productos = func_call['args'].get('productos', [])
+                        order_result = registrar_pedido_arca(productos)
+                        return {
+                            "text": order_result['message'],
+                            "action": "order_created",
+                            "order_id": order_result.get('order_id'),
+                            "productos": productos
+                        }
+
+                # Texto normal
+                if 'text' in part:
+                    return {"text": part['text'], "action": None}
+
+        return fallback_ai_response(user_message)
+
+    except Exception as e:
+        print(f"Gemini error: {e}")
+        return fallback_ai_response(user_message)
+
+
+def fallback_ai_response(user_message):
+    """Respuesta local cuando Gemini no está disponible."""
+    msg = user_message.lower().strip()
+
+    # Obtener contexto
+    conn = get_db()
+    weather = get_weather()
+
+    low_stock = conn.execute("""
+        SELECT producto, stock_actual, ventas_por_dia,
+               CAST(stock_actual AS REAL) / CASE WHEN ventas_por_dia > 0 THEN ventas_por_dia ELSE 1 END as dias_restantes
+        FROM inventario_tienda
+        WHERE CAST(stock_actual AS REAL) / CASE WHEN ventas_por_dia > 0 THEN ventas_por_dia ELSE 1 END <= 3
+        ORDER BY dias_restantes ASC LIMIT 5
+    """).fetchall()
+    conn.close()
+
+    if any(w in msg for w in ['hola', 'buenos', 'buenas', 'hey']):
+        greeting = f"¡Hola Don Carlos! 👋 Hoy está a {weather['temp']}°C y {weather['description']}."
+        if weather['temp'] > 28:
+            greeting += " Con este calor, las aguas y refrescos fríos se venden muy bien. 🥤❄️"
+        elif weather['temp'] < 18:
+            greeting += " Con este fresco, el café y las bebidas calientes son buena opción. ☕"
+        greeting += "\n\n¿En qué te puedo ayudar hoy?"
+        return {"text": greeting, "action": None}
+
+    if any(w in msg for w in ['recomiend', 'sugier', 'zona', 'que se vende', 'consejo']):
+        text = f"📍 **Recomendaciones para tu zona:**\n\n"
+        text += f"🌡️ Clima: {weather['temp']}°C, {weather['description']}\n\n"
+        if weather['temp'] > 28:
+            text += "☀️ **Día caluroso** → Las aguas y refrescos fríos son los más buscados\n"
+        text += "🏫 **Kinder cercano (200m)** → Jugos Del Valle se venden mucho a la hora de salida (12pm)\n"
+        text += "🏫 **Primaria (350m)** → Snacks Bokados y agua Ciel 500ml para el recreo\n"
+        text += "🌳 **Parque Central (150m)** → Powerade y agua para deportistas\n\n"
+        if low_stock:
+            text += "⚠️ **Ojo:** " + ", ".join([f"{r['producto']} te queda para ~{round(r['dias_restantes'],1)} días" for r in low_stock[:3]])
+        return {"text": text, "action": None}
+
+    if any(w in msg for w in ['inventario', 'stock', 'se acab', 'falta', 'queda']):
+        if low_stock:
+            text = "⚠️ **Productos con bajo inventario:**\n\n"
+            for r in low_stock:
+                text += f"• {r['producto']}: {r['stock_actual']} unidades (~{round(r['dias_restantes'],1)} días)\n"
+            text += f"\n🚚 Próxima entrega CEDIS: Lunes\n\n¿Quieres que haga el pedido de reabastecimiento?"
+        else:
+            text = "✅ ¡Todo bien! Tu inventario está en niveles normales. 👍"
+        return {"text": text, "action": None}
+
+    if any(w in msg for w in ['pedir', 'pedido', 'comprar', 'ordenar', 'quiero', 'necesito', 'ocupo', 'encarga']):
+        # Intentar detectar productos
+        product_map = {
+            'coca': 'Coca-Cola 600ml', 'fanta': 'Fanta Naranja 600ml', 'sprite': 'Sprite 600ml',
+            'ciel': 'Ciel 1L', 'agua': 'Ciel 1L', 'topo': 'Topo Chico 600ml',
+            'del valle': 'Del Valle Durazno 1L', 'jugo': 'Del Valle Durazno 1L',
+            'monster': 'Monster Energy', 'powerade': 'Powerade 600ml',
+            'bokados': 'Bokados Papas Clasicas', 'papas': 'Bokados Papas Clasicas',
+            'mundet': 'Sidral Mundet 600ml'
+        }
+        found = []
+        for key, product in product_map.items():
+            if key in msg and product not in found:
+                found.append(product)
+
+        if found:
+            productos = [{"nombre": p, "cantidad": 1} for p in found]
+            result = registrar_pedido_arca(productos)
+            return {
+                "text": result['message'],
+                "action": "order_created",
+                "order_id": result.get('order_id'),
+                "productos": productos
+            }
+        else:
+            return {"text": "¡Con gusto! ¿Qué productos necesitas? Puedo ayudarte con refrescos, aguas, jugos, snacks o energéticas.", "action": None}
+
+    if any(w in msg for w in ['sí', 'si', 'confirma', 'dale', 'acepto', 'ok']):
+        return {"text": "¡Perfecto! ¿Hay algo más en lo que pueda ayudarte? 😊", "action": None}
+
+    if any(w in msg for w in ['gracias', 'gracia']):
+        return {"text": "¡De nada, Don Carlos! 😊 Aquí estoy siempre que me necesites. ¡Que tenga buenas ventas hoy! 💪", "action": None}
+
+    if any(w in msg for w in ['clima', 'tiempo', 'temperatura', 'lluv', 'calor', 'frio']):
+        text = f"🌡️ **Clima actual:** {weather['temp']}°C, {weather['description']}, humedad {weather['humidity']}%\n\n"
+        if weather['temp'] > 30:
+            text += "🔥 Día muy caluroso. ¡Los refrescos fríos y aguas se van a vender mucho!"
+        elif weather['temp'] > 25:
+            text += "☀️ Buen clima. Las bebidas frías tendrán buena demanda."
+        elif weather['temp'] < 18:
+            text += "🧥 Está fresco. Las bebidas calientes y snacks pueden ser buena opción."
+        else:
+            text += "🌤️ Temperatura agradable. Buen día para todo tipo de ventas."
+        return {"text": text, "action": None}
+
+    return {"text": "¿En qué te puedo ayudar? Puedo hacer pedidos, recomendarte productos según el clima y tu zona, o revisar tu inventario. También puedes hablarme por voz. 🎙️", "action": None}
+
+
+def registrar_pedido_arca(productos):
+    """Registra un pedido nuevo en la base de datos."""
+    conn = get_db()
+
+    # Calcular valor del pedido
+    precios = {
+        'Coca-Cola 600ml': 189, 'Coca-Cola 2L': 245, 'Coca-Cola Zero 600ml': 195,
+        'Fanta Naranja 600ml': 175, 'Sprite 600ml': 175, 'Fresca 600ml': 170,
+        'Ciel 1L': 96, 'Ciel 1.5L': 108, 'Ciel 500ml': 72, 'Ciel Mineralizada': 115,
+        'Del Valle Durazno 1L': 145, 'Del Valle Manzana 1L': 145, 'Del Valle Naranja 500ml': 89,
+        'Fuze Tea Limon 600ml': 165, 'Bokados Papas Clasicas': 85, 'Bokados Chicharron': 92,
+        'Bokados Cacahuates': 78, 'Bokados Palomitas': 65, 'Monster Energy': 320,
+        'Monster Ultra': 335, 'Powerade 600ml': 198, 'Coca-Cola 355ml Lata': 168,
+        'Sidral Mundet 600ml': 180, 'Topo Chico 600ml': 142
+    }
+
+    total = 0
+    product_list = []
+    for item in productos:
+        nombre = item['nombre']
+        qty = item.get('cantidad', 1)
+        precio = precios.get(nombre, 150)
+        total += precio * qty
+        product_list.append(f"{nombre} x{qty}")
+
+    subtotal = round(total * 0.95, 2)
+    fecha_pedido = datetime.datetime.now().strftime('%Y-%m-%d')
+    # Próximo lunes o jueves
+    today = datetime.datetime.now()
+    days_ahead = (0 - today.weekday()) % 7  # Lunes
+    if days_ahead == 0:
+        days_ahead = 7
+    fecha_entrega = (today + datetime.timedelta(days=days_ahead)).strftime('%Y-%m-%d')
+
+    c = conn.cursor()
+    c.execute("""INSERT INTO pedidos_tuali (customer_id, pais, id_businessun, business_unit, cedis,
+                 fecha_pedido, fecha_entrega, status_final, valor_pedido, subtotal, total,
+                 confirmado_por_cliente, productos_json)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+              ('AC-MX-48291', 'Mexico', 'BU-MX-001', 'Arca Continental Mexico', 'CEDIS CDMX Norte',
+               fecha_pedido, fecha_entrega, 'Confirmado', total, subtotal, total, 0,
+               json.dumps(productos, ensure_ascii=False)))
+    order_id = c.lastrowid
+    conn.commit()
+    conn.close()
+
+    product_text = "\n".join([f"• {p}" for p in product_list])
+    message = f"🎉 **¡Pedido registrado exitosamente!**\n\n📦 Pedido #AC-{order_id}\n{product_text}\n\n💰 Total: ${total:,.0f}\n🚚 Entrega estimada: {fecha_entrega}\n\nTe notificaré cuando salga a ruta. ¿Necesitas algo más?"
+
+    return {"message": message, "order_id": order_id, "total": total}
+
+
+# ===== API ENDPOINTS =====
+
+@app.route('/')
+def serve_index():
+    """Servir el index.html."""
+    return send_from_directory('.', 'index.html')
+
+
+@app.route('/<path:path>')
+def serve_static(path):
+    """Servir archivos estáticos."""
+    return send_from_directory('.', path)
+
+
+@app.route('/api/alertas', methods=['GET'])
+def get_alertas():
+    """
+    GET /api/alertas
+    Retorna alertas de desabasto predictivo y entregas pendientes de confirmación.
+    Fórmula: Días de Stock = stock_actual / ventas_por_dia
+    Si Días de Stock <= dias_surtido_cedis → Alerta de reabastecimiento
+    """
+    conn = get_db()
+    alertas = []
+
+    # 1. Alertas de desabasto predictivo
+    low_stock = conn.execute("""
+        SELECT producto, stock_actual, ventas_por_dia, dias_surtido_cedis,
+               CAST(stock_actual AS REAL) / CASE WHEN ventas_por_dia > 0 THEN ventas_por_dia ELSE 1 END as dias_restantes
+        FROM inventario_tienda
+        WHERE CAST(stock_actual AS REAL) / CASE WHEN ventas_por_dia > 0 THEN ventas_por_dia ELSE 1 END <= dias_surtido_cedis
+        ORDER BY dias_restantes ASC
+    """).fetchall()
+
+    for item in low_stock:
+        alertas.append({
+            "tipo": "desabasto",
+            "severidad": "alta" if item['dias_restantes'] <= 1 else "media",
+            "producto": item['producto'],
+            "stock_actual": item['stock_actual'],
+            "dias_restantes": round(item['dias_restantes'], 1),
+            "dias_surtido_cedis": item['dias_surtido_cedis'],
+            "mensaje": f"⚠️ {item['producto']} se agotará en ~{round(item['dias_restantes'], 1)} días ({item['stock_actual']} unidades restantes)"
+        })
+
+    # 2. Alertas de seguridad (entregas no confirmadas)
+    entregas_pendientes = conn.execute("""
+        SELECT id_registro, fecha_entrega, valor_pedido, productos_json
+        FROM pedidos_tuali
+        WHERE status_final = 'Entregado' AND confirmado_por_cliente = 0
+        ORDER BY fecha_entrega DESC
+    """).fetchall()
+
+    for entrega in entregas_pendientes:
+        alertas.append({
+            "tipo": "confirmacion_entrega",
+            "severidad": "alta",
+            "id_pedido": entrega['id_registro'],
+            "fecha_entrega": entrega['fecha_entrega'],
+            "valor": entrega['valor_pedido'],
+            "productos": json.loads(entrega['productos_json']) if entrega['productos_json'] else [],
+            "mensaje": f"🔔 ¿Recibió el pedido #AC-{entrega['id_registro']}? (${entrega['valor_pedido']:,.0f})"
+        })
+
+    # 3. Info del clima para recomendaciones
+    weather = get_weather()
+
+    conn.close()
+
+    return jsonify({
+        "alertas": alertas,
+        "clima": weather,
+        "timestamp": datetime.datetime.now().isoformat()
+    })
+
+
+@app.route('/api/tuali-chat', methods=['POST'])
+def tuali_chat():
+    """
+    POST /api/tuali-chat
+    Recibe texto del tendero (voz transcrita o escrita) y responde con IA.
+    Body: { "message": "texto del usuario", "context": "contexto adicional" }
+    """
+    data = request.get_json()
+    if not data or 'message' not in data:
+        return jsonify({"error": "Se requiere campo 'message'"}), 400
+
+    user_message = data['message']
+    context = data.get('context', '')
+
+    # Llamar a Gemini (o fallback local)
+    response = call_gemini(user_message, context)
+
+    return jsonify({
+        "response": response['text'],
+        "action": response.get('action'),
+        "order_id": response.get('order_id'),
+        "productos": response.get('productos'),
+        "timestamp": datetime.datetime.now().isoformat()
+    })
+
+
+@app.route('/api/confirmar-entrega', methods=['POST'])
+def confirmar_entrega():
+    """
+    POST /api/confirmar-entrega
+    Actualiza el estado de confirmación de una entrega.
+    Body: { "id_pedido": 123, "confirmacion": 1 }
+    confirmacion: 1 = Recibido OK, -1 = Reportar robo/faltante
+    """
+    data = request.get_json()
+    if not data or 'id_pedido' not in data or 'confirmacion' not in data:
+        return jsonify({"error": "Se requieren campos 'id_pedido' y 'confirmacion'"}), 400
+
+    id_pedido = data['id_pedido']
+    confirmacion = data['confirmacion']  # 1 = OK, -1 = Robo/Faltante
+
+    if confirmacion not in [1, -1]:
+        return jsonify({"error": "confirmacion debe ser 1 (OK) o -1 (Incidencia)"}), 400
+
+    conn = get_db()
+    c = conn.cursor()
+
+    # Verificar que el pedido existe
+    pedido = c.execute("SELECT * FROM pedidos_tuali WHERE id_registro = ?", (id_pedido,)).fetchone()
+    if not pedido:
+        conn.close()
+        return jsonify({"error": f"Pedido #{id_pedido} no encontrado"}), 404
+
+    # Actualizar confirmación
+    if confirmacion == -1:
+        c.execute("""UPDATE pedidos_tuali
+                     SET confirmado_por_cliente = -1, status_final = 'Incidencia_Reportada'
+                     WHERE id_registro = ?""", (id_pedido,))
+        mensaje = f"🚨 Se reportó la incidencia del pedido #AC-{id_pedido}. Nuestro equipo de seguridad dará seguimiento. Te contactaremos en las próximas 24 horas."
+    else:
+        c.execute("""UPDATE pedidos_tuali
+                     SET confirmado_por_cliente = 1
+                     WHERE id_registro = ?""", (id_pedido,))
+        mensaje = f"✅ ¡Gracias por confirmar la recepción del pedido #AC-{id_pedido}! +50 puntos Tuali ganados."
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({
+        "success": True,
+        "mensaje": mensaje,
+        "id_pedido": id_pedido,
+        "confirmacion": confirmacion
+    })
+
+
+@app.route('/api/inventario', methods=['GET'])
+def get_inventario():
+    """GET /api/inventario - Retorna todo el inventario de la tienda."""
+    conn = get_db()
+    items = conn.execute("""
+        SELECT producto, stock_actual, ventas_por_dia, dias_surtido_cedis,
+               CAST(stock_actual AS REAL) / CASE WHEN ventas_por_dia > 0 THEN ventas_por_dia ELSE 1 END as dias_restantes
+        FROM inventario_tienda ORDER BY dias_restantes ASC
+    """).fetchall()
+    conn.close()
+
+    return jsonify({
+        "inventario": [dict(item) for item in items]
+    })
+
+
+# ===== MAIN =====
+if __name__ == '__main__':
+    init_db()
+    port = int(os.environ.get('PORT', 5000))
+    print(f"""
+    ╔══════════════════════════════════════════╗
+    ║   🤖 TUALI AI Server - Arca Continental  ║
+    ║   Puerto: {port}                           ║
+    ║   Gemini: {'✅ Configurado' if GEMINI_API_KEY else '❌ Sin API Key (modo local)'}     ║
+    ║   Clima:  {'✅ Configurado' if WEATHER_API_KEY else '❌ Sin API Key (datos default)'}     ║
+    ╚══════════════════════════════════════════╝
+    """)
+    app.run(host='0.0.0.0', port=port, debug=True)

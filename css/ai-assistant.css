@@ -65,3 +65,57 @@
 .ai-header-name { font-size: 14px; font-weight: 700; color: white; }
 .ai-header-status { font-size: 10px; color: rgba(255,255,255,0.8); display: flex; align-items: center; gap: 4px; }
 .ai-header-status::before { content: ''; width: 6px; height: 6px; background: #4CAF50; border-radius: 50%; }
+
+
+
+/* ===== BOTÓN DE VOZ ACCESIBLE (Adultos Mayores) ===== */
+.tuali-voice-fab {
+  position: fixed;
+  bottom: 80px;
+  left: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4CAF50, #2E7D32);
+  color: white;
+  border: none;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(76,175,80,0.4);
+  z-index: 900;
+  transition: transform 0.2s;
+}
+.tuali-voice-fab:active { transform: scale(0.9); }
+.tuali-voice-fab.recording { background: linear-gradient(135deg, #f44336, #c62828); animation: pulse 1.5s infinite; box-shadow: 0 4px 16px rgba(244,67,54,0.5); }
+
+/* ===== CONTENEDOR DE ALERTAS ===== */
+#contenedor-alertas-tuali { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+
+.alerta-tuali {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: 12px;
+  font-size: 13px; line-height: 1.4;
+  animation: fadeIn 0.3s ease; position: relative;
+}
+.alerta-tuali.alerta-desabasto { background: #FFF3E0; border: 1px solid #FFB74D; color: #E65100; }
+.alerta-tuali.alerta-seguridad { background: #FCE4EC; border: 1px solid #F48FB1; color: #880E4F; }
+.alerta-tuali.alerta-clima { background: #E3F2FD; border: 1px solid #90CAF9; color: #0D47A1; }
+
+.alerta-tuali-icon { font-size: 22px; flex-shrink: 0; }
+.alerta-tuali-content { flex: 1; }
+.alerta-tuali-title { font-weight: 700; font-size: 12px; margin-bottom: 2px; }
+.alerta-tuali-text { font-size: 12px; opacity: 0.9; }
+.alerta-tuali-actions { display: flex; gap: 6px; margin-top: 8px; }
+.alerta-tuali-btn {
+  padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;
+  border: none; cursor: pointer; transition: transform 0.1s;
+}
+.alerta-tuali-btn:active { transform: scale(0.95); }
+.alerta-tuali-btn-confirm { background: #4CAF50; color: white; }
+.alerta-tuali-btn-report { background: #f44336; color: white; }
+.alerta-tuali-btn-order { background: var(--primary-red); color: white; }
+.alerta-tuali-btn-dismiss { background: #E0E0E0; color: #616161; }
+.alerta-tuali-close { position: absolute; top: 6px; right: 8px; background: none; border: none; font-size: 14px; color: inherit; opacity: 0.5; cursor: pointer; }

@@ -1,0 +1,22 @@
+{
+  "name": "tuali-app",
+  "version": "2.0.0",
+  "description": "Tuali AI - Asistente inteligente para tenderos de Arca Continental",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "seed": "node server/db/seed.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "better-sqlite3": "^11.7.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "node-cron": "^3.0.3"
+  },
+  "keywords": ["tuali", "arca-continental", "ai", "gemini"],
+  "author": "Yami108",
+  "license": "MIT"
+}

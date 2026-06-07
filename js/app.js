@@ -48,21 +48,26 @@ function navigateTo(page) {
 
   const bottomNav = document.getElementById('bottom-nav');
   const aiFab = document.getElementById('ai-fab');
+  const voiceFab = document.getElementById('btn-tuali-voz');
 
   if (page === 'login') {
     bottomNav.style.display = 'none';
     if (aiFab) aiFab.style.display = 'none';
+    if (voiceFab) voiceFab.style.display = 'none';
   } else if (page === 'carrito' || page === 'asistente') {
     bottomNav.style.display = 'none';
     if (aiFab) aiFab.style.display = 'none';
+    if (voiceFab) voiceFab.style.display = 'none';
   } else {
     bottomNav.style.display = 'flex';
     if (aiFab) aiFab.style.display = 'flex';
+    if (voiceFab) voiceFab.style.display = 'flex';
   }
 
   if (page === 'catalogo') renderProducts();
   if (page === 'carrito') renderCart();
   if (page === 'asistente') initAI();
+  if (page === 'home' && typeof loadAlertas === 'function') loadAlertas();
   currentPage = page;
 }
 
