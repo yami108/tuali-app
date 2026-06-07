@@ -119,3 +119,11 @@
 .alerta-tuali-btn-order { background: var(--primary-red); color: white; }
 .alerta-tuali-btn-dismiss { background: #E0E0E0; color: #616161; }
 .alerta-tuali-close { position: absolute; top: 6px; right: 8px; background: none; border: none; font-size: 14px; color: inherit; opacity: 0.5; cursor: pointer; }
+
+
+
+/* Typing indicator */
+.typing-dot { width: 8px; height: 8px; background: var(--text-muted); border-radius: 50%; animation: typingBounce 1.2s ease-in-out infinite; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingBounce { 0%,100% { transform: translateY(0); opacity: 0.5; } 50% { transform: translateY(-5px); opacity: 1; } }
