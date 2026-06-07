@@ -1,8 +1,9 @@
 /* ============================================
-   TUALI - App Logic + Micrófono Inmutable
+   TUALI - Arca Continental
+   App Logic + Ciclo de Vida del Micrófono
    ============================================ */
 
-// ===== DATA =====
+// ===== PRODUCTOS =====
 const products = [
   { id: 1, name: 'Coca-Cola 600ml', category: 'refrescos', price: 189, unit: 'Pack x24', emoji: '🥤', promo: '-20%' },
   { id: 2, name: 'Coca-Cola 2L', category: 'refrescos', price: 245, unit: 'Pack x8', emoji: '🥤', promo: null },
@@ -30,135 +31,109 @@ const products = [
   { id: 24, name: 'Topo Chico 600ml', category: 'aguas', price: 142, unit: 'Pack x12', emoji: '🫧', promo: 'Nuevo' },
 ];
 
-// ===== STATE =====
+// ===== ESTADO GLOBAL =====
 let cart = [];
 let currentPage = 'login';
 let currentCategory = 'todos';
 
 // ============================================================
-// CÓDIGO INMUTABLE: INICIALIZACIÓN DEL MICRÓFONO Y MASCOTA
+// INICIALIZACIÓN DEL RECONOCIMIENTO DE VOZ Y MASCOTA
 // ============================================================
 document.addEventListener("DOMContentLoaded", () => {
-    const botonMascota = document.getElementById("tuali-mascota-global");
-    if (!botonMascota) {
-        console.error("Error: No se encontró el contenedor de la mascota #tuali-mascota-global en el HTML.");
-        return;
-    }
+    const mascota = document.getElementById("tuali-mascota-global");
+    const bocadillo = document.getElementById("tuali-bocadillo");
 
+    if (!mascota) return;
+
+    // Inicialización del reconocimiento de voz nativo
     const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
     if (!SpeechRecognition) {
-        alert("Tu navegador no soporta reconocimiento de voz. Usa Google Chrome o Edge.");
+        console.error("Entorno no compatible con SpeechRecognition.");
         return;
     }
 
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'es-MX';
-    recognition.interimResults = false;
-    recognition.continuous = false;
+    const receptorVoz = new SpeechRecognition();
+    receptorVoz.lang = 'es-MX';
+    receptorVoz.interimResults = false;
+    receptorVoz.continuous = false; // Manejo manual para evitar desincronización de hardware
 
-    let estadoEscuchaActiva = false;
+    let escuchaActiva = false;
 
-    // Forzar la ventana de permisos de audio de inmediato
+    // Solicitud explícita y obligatoria de permisos de hardware al iniciar
     navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(() => console.log("Permisos de micrófono autorizados."))
-        .catch(() => alert("Por favor activa los permisos de micrófono en la barra de direcciones de tu navegador."));
+        .then(() => console.log("Acceso al micrófono gestionado correctamente."))
+        .catch(() => console.error("Permisos de audio denegados por el navegador."));
 
-    // Eventos del Micrófono
-    recognition.onstart = () => {
-        botonMascota.classList.add("grabando-active");
-        console.log("Tualito te está escuchando...");
-        showToast('🎙️ Tualito te está escuchando...');
-    };
-
-    recognition.onerror = (e) => {
-        console.error("Error detectado en audio: ", e.error);
-        if (e.error === 'not-allowed') {
-            alert("Por favor activa los permisos de micrófono en la barra de direcciones de tu navegador.");
-            estadoEscuchaActiva = false;
+    // Ciclo de vida del micrófono
+    receptorVoz.onstart = () => {
+        mascota.classList.add("grabando-active");
+        if (bocadillo) {
+            bocadillo.style.display = "block";
+            bocadillo.innerText = "Le escucho con atención de manera continua...";
         }
     };
 
-    recognition.onend = () => {
-        botonMascota.classList.remove("grabando-active");
-        // Reinicio automático para asegurar escucha continua si el usuario sigue en modo chat
-        if (estadoEscuchaActiva) {
-            setTimeout(() => {
-                try { recognition.start(); } catch(e) { console.log('Reiniciando escucha...'); }
-            }, 300);
+    receptorVoz.onerror = (event) => {
+        console.error("Incidencia en el hardware de audio: ", event.error);
+    };
+
+    receptorVoz.onend = () => {
+        mascota.classList.remove("grabando-active");
+        // REINICIO AUTOMÁTICO: Garantiza que el micrófono no se apague tras la primera frase
+        if (escuchaActiva) {
+            try {
+                receptorVoz.start();
+            } catch (e) {
+                console.log("Reintento de conexión de audio en curso...");
+            }
         }
     };
 
-    recognition.onresult = (event) => {
-        const textoEscuchado = event.results[0][0].transcript;
-        console.log("Texto informal recibido: ", textoEscuchado);
+    receptorVoz.onresult = (event) => {
+        const transcripcion = event.results[0][0].transcript;
+        console.log("Entrada de voz procesada: ", transcripcion);
 
-        // Enviar la orden informal directamente al backend
+        // Envío directo al backend sin restricciones de formato para el usuario
         fetch('/api/tuali-chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: textoEscuchado, pantalla_actual: currentPage || "inicio" })
+            body: JSON.stringify({
+                message: transcripcion,
+                mensaje: transcripcion,
+                contexto_pantalla: document.body.dataset.screen || "inicio"
+            })
         })
-        .then(res => res.json())
+        .then(response => response.json())
         .then(data => {
-            console.log("Respuesta de Tualito:", data.response);
-            // Pintar la burbuja de respuesta en el chat dedicado
-            if (currentPage === 'asistente' && typeof addMessageToChat === 'function') {
-                addMessageToChat('user', textoEscuchado);
-                addMessageToChat('ai', data.response || data.respuesta || '¿Mande? No le entendí, jefe.');
-            } else {
-                // Si no está en chat, abrir chat y mostrar ahí
-                navigateTo('asistente');
-                setTimeout(() => {
-                    if (typeof addMessageToChat === 'function') {
-                        addMessageToChat('user', textoEscuchado);
-                        addMessageToChat('ai', data.response || data.respuesta || '¿Mande? No le entendí, jefe.');
-                    }
-                }, 600);
+            const respuesta = data.response || data.respuesta || "Solicitud procesada.";
+            if (bocadillo) {
+                bocadillo.style.display = "block";
+                bocadillo.innerText = respuesta;
             }
-            // Reproducir respuesta por voz (síntesis de voz del navegador)
-            if ('speechSynthesis' in window && data.response) {
-                const utterance = new SpeechSynthesisUtterance(data.response.replace(/\*\*/g,'').replace(/<[^>]*>/g,''));
+            // Síntesis de voz para adultos mayores
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(respuesta.replace(/\*\*/g,''));
                 utterance.lang = 'es-MX';
                 utterance.rate = 0.9;
                 window.speechSynthesis.speak(utterance);
             }
         })
-        .catch(err => {
-            console.error("Error conectando al backend:", err);
-            // Fallback local si el backend no está disponible
-            if (typeof sendAIMessage === 'function') {
-                if (currentPage !== 'asistente') navigateTo('asistente');
-                setTimeout(() => sendAIMessage(textoEscuchado), 500);
-            }
-        });
+        .catch(err => console.error("Error en la comunicación con el servidor:", err));
     };
 
-    // Al dar un clic a la mascota, se enciende/apaga el micrófono
-    botonMascota.addEventListener("click", () => {
-        if (!estadoEscuchaActiva) {
-            estadoEscuchaActiva = true;
-            try { recognition.start(); } catch(e) { /* ya corriendo */ }
+    // Alternar el estado del micrófono con un solo clic sobre la mascota
+    mascota.addEventListener("click", () => {
+        if (!escuchaActiva) {
+            escuchaActiva = true;
+            try { receptorVoz.start(); } catch(e) { /* ya activo */ }
         } else {
-            estadoEscuchaActiva = false;
-            recognition.stop();
-            showToast('🎙️ Micrófono apagado');
+            escuchaActiva = false;
+            receptorVoz.stop();
+            if (bocadillo) bocadillo.style.display = "none";
         }
     });
 
-    // Doble clic: ir al Chat Dedicado
-    botonMascota.addEventListener("dblclick", () => {
-        estadoEscuchaActiva = false;
-        recognition.stop();
-        navigateTo('asistente');
-    });
-
-    // Hacer la referencia global para que ai-assistant.js pueda usarlo
-    window._tualitoRecognition = recognition;
-    window._tualitoSetEscucha = (val) => { estadoEscuchaActiva = val; };
-    window._tualitoStartMic = () => { estadoEscuchaActiva = true; try { recognition.start(); } catch(e){} };
-    window._tualitoStopMic = () => { estadoEscuchaActiva = false; recognition.stop(); };
-
-    // Conectar también los botones de login
+    // Login listeners
     document.getElementById('login-code')?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') doLogin();
     });
@@ -168,179 +143,138 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ============================================================
-// NAVIGATION
+// NAVEGACIÓN
 // ============================================================
 function navigateTo(page) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  const targetPage = document.getElementById(`page-${page}`);
-  if (targetPage) targetPage.classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const target = document.getElementById(`page-${page}`);
+    if (target) target.classList.add('active');
 
-  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-  const navItems = document.querySelectorAll('.nav-item');
-  const pageIndex = ['home', 'catalogo', 'pedidos', 'recompensas', 'perfil'].indexOf(page);
-  if (pageIndex >= 0 && navItems[pageIndex]) navItems[pageIndex].classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    const navItems = document.querySelectorAll('.nav-item');
+    const idx = ['home', 'catalogo', 'pedidos', 'recompensas', 'perfil'].indexOf(page);
+    if (idx >= 0 && navItems[idx]) navItems[idx].classList.add('active');
 
-  const bottomNav = document.getElementById('bottom-nav');
-  const mascotaWidget = document.getElementById('tuali-mascota-global');
+    const bottomNav = document.getElementById('bottom-nav');
+    const mascota = document.getElementById('tuali-mascota-global');
 
-  if (page === 'login') {
-    bottomNav.style.display = 'none';
-    if (mascotaWidget) mascotaWidget.style.display = 'none';
-  } else if (page === 'carrito') {
-    bottomNav.style.display = 'none';
-    if (mascotaWidget) mascotaWidget.style.display = 'none';
-  } else if (page === 'asistente') {
-    bottomNav.style.display = 'none';
-    if (mascotaWidget) mascotaWidget.style.display = 'none';
-    if (typeof initAI === 'function') initAI();
-  } else {
-    bottomNav.style.display = 'flex';
-    if (mascotaWidget) mascotaWidget.style.display = 'flex';
-  }
+    if (page === 'login') {
+        bottomNav.style.display = 'none';
+        if (mascota) mascota.style.display = 'none';
+    } else if (page === 'carrito') {
+        bottomNav.style.display = 'none';
+        if (mascota) mascota.style.display = 'none';
+    } else {
+        bottomNav.style.display = 'flex';
+        if (mascota) mascota.style.display = 'flex';
+    }
 
-  if (page === 'catalogo') renderProducts();
-  if (page === 'carrito') renderCart();
-  if (page === 'home' && typeof loadAlertas === 'function') loadAlertas();
+    if (page === 'catalogo') renderProducts();
+    if (page === 'carrito') renderCart();
 
-  // Set data attribute for backend context
-  document.body.dataset.screen = page;
-  currentPage = page;
-
-  // Update Tualito context bubble
-  if (typeof updateTualitoContext === 'function') updateTualitoContext();
-  if (typeof closeTualitoBubble === 'function') closeTualitoBubble();
+    document.body.dataset.screen = page;
+    currentPage = page;
 }
 
 function goBack() { navigateTo('catalogo'); }
 
 // ===== LOGIN =====
 function doLogin() {
-  showToast('Bienvenido a Tuali! 🎉');
-  setTimeout(() => navigateTo('home'), 500);
+    showToast('Bienvenido a Tuali');
+    setTimeout(() => navigateTo('home'), 500);
 }
+function logout() { navigateTo('login'); cart = []; updateCartBadge(); }
 
-function logout() {
-  navigateTo('login');
-  cart = [];
-  updateCartBadge();
-  showToast('Sesion cerrada');
-}
-
-// ===== PRODUCTS =====
+// ===== PRODUCTOS =====
 function renderProducts() {
-  const grid = document.getElementById('products-grid');
-  if (!grid) return;
-  const productsToRender = getFilteredProducts();
-  grid.innerHTML = productsToRender.map(product => `
-    <div class="product-card" data-category="${product.category}">
-      ${product.promo ? `<div class="product-promo-badge">${product.promo}</div>` : ''}
-      <div class="product-card-img">${product.emoji}</div>
-      <div class="product-card-name">${product.name}</div>
-      <div class="product-card-unit">${product.unit}</div>
-      <div class="product-card-price">$${product.price}</div>
-      <div class="qty-control">
-        <button class="qty-btn" onclick="updateProductQty(${product.id}, -1)">−</button>
-        <span class="qty-value" id="qty-${product.id}">${getCartQty(product.id)}</span>
-        <button class="qty-btn" onclick="updateProductQty(${product.id}, 1)">+</button>
-      </div>
-    </div>
-  `).join('');
+    const grid = document.getElementById('products-grid');
+    if (!grid) return;
+    grid.innerHTML = getFilteredProducts().map(p => `
+        <div class="product-card"><${p.promo ? `<div class="product-promo-badge">${p.promo}</div>` : ''}
+            <div class="product-card-img">${p.emoji}</div>
+            <div class="product-card-name">${p.name}</div>
+            <div class="product-card-unit">${p.unit}</div>
+            <div class="product-card-price">$${p.price}</div>
+            <div class="qty-control"><button class="qty-btn" onclick="updateProductQty(${p.id},-1)">−</button><span class="qty-value" id="qty-${p.id}">${getCartQty(p.id)}</span><button class="qty-btn" onclick="updateProductQty(${p.id},1)">+</button></div>
+        </div>`).join('');
 }
 
 function getFilteredProducts() {
-  let filtered = products;
-  if (currentCategory !== 'todos') filtered = filtered.filter(p => p.category === currentCategory);
-  const searchTerm = document.getElementById('search-input')?.value?.toLowerCase() || '';
-  if (searchTerm) filtered = filtered.filter(p => p.name.toLowerCase().includes(searchTerm) || p.category.toLowerCase().includes(searchTerm));
-  return filtered;
+    let f = products;
+    if (currentCategory !== 'todos') f = f.filter(p => p.category === currentCategory);
+    const s = document.getElementById('search-input')?.value?.toLowerCase() || '';
+    if (s) f = f.filter(p => p.name.toLowerCase().includes(s) || p.category.includes(s));
+    return f;
 }
 
-function filterByCategory(category, element) {
-  currentCategory = category;
-  document.querySelectorAll('.filter-chips .chip').forEach(c => c.classList.remove('active'));
-  if (element) element.classList.add('active');
-  renderProducts();
+function filterByCategory(cat, el) {
+    currentCategory = cat;
+    document.querySelectorAll('.filter-chips .chip').forEach(c => c.classList.remove('active'));
+    if (el) el.classList.add('active');
+    renderProducts();
 }
-
 function filterProducts() { renderProducts(); }
 
-// ===== CART =====
-function getCartQty(productId) { const item = cart.find(i => i.id === productId); return item ? item.qty : 0; }
+// ===== CARRITO =====
+function getCartQty(id) { const i = cart.find(x => x.id === id); return i ? i.qty : 0; }
 
-function updateProductQty(productId, delta) {
-  const existingItem = cart.find(i => i.id === productId);
-  if (existingItem) { existingItem.qty += delta; if (existingItem.qty <= 0) cart = cart.filter(i => i.id !== productId); }
-  else if (delta > 0) { const product = products.find(p => p.id === productId); cart.push({ ...product, qty: 1 }); }
-  const qtyEl = document.getElementById(`qty-${productId}`);
-  if (qtyEl) qtyEl.textContent = getCartQty(productId);
-  updateCartBadge();
+function updateProductQty(id, delta) {
+    const item = cart.find(x => x.id === id);
+    if (item) { item.qty += delta; if (item.qty <= 0) cart = cart.filter(x => x.id !== id); }
+    else if (delta > 0) { const p = products.find(x => x.id === id); cart.push({...p, qty: 1}); }
+    const el = document.getElementById(`qty-${id}`);
+    if (el) el.textContent = getCartQty(id);
+    updateCartBadge();
 }
 
-function addToCart(productName) {
-  const product = products.find(p => productName.includes(p.name));
-  if (product) { updateProductQty(product.id, 1); }
-  else { cart.push({ id: Date.now(), name: productName, price: 189, qty: 1, emoji: '📦' }); }
-  updateCartBadge();
-  showToast('Agregado al carrito ✓');
+function addToCart(name) {
+    const p = products.find(x => name.includes(x.name));
+    if (p) updateProductQty(p.id, 1);
+    else cart.push({ id: Date.now(), name, price: 189, qty: 1, emoji: '📦' });
+    updateCartBadge();
+    showToast('Agregado al carrito');
 }
 
-function removeFromCart(productId) { cart = cart.filter(i => i.id !== productId); renderCart(); updateCartBadge(); }
+function removeFromCart(id) { cart = cart.filter(x => x.id !== id); renderCart(); updateCartBadge(); }
 
 function updateCartBadge() {
-  const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
-  const badge = document.getElementById('cart-badge-header');
-  if (badge) { badge.textContent = totalItems; badge.style.display = totalItems > 0 ? 'flex' : 'none'; }
+    const total = cart.reduce((s, i) => s + i.qty, 0);
+    const b = document.getElementById('cart-badge-header');
+    if (b) { b.textContent = total; b.style.display = total > 0 ? 'flex' : 'none'; }
 }
 
 function renderCart() {
-  const cartItemsEl = document.getElementById('cart-items');
-  const cartEmptyEl = document.getElementById('cart-empty');
-  const cartSummaryEl = document.getElementById('cart-summary');
-  if (!cartItemsEl) return;
-
-  if (cart.length === 0) { cartItemsEl.innerHTML = ''; cartEmptyEl.style.display = 'block'; cartSummaryEl.style.display = 'none'; return; }
-  cartEmptyEl.style.display = 'none';
-  cartSummaryEl.style.display = 'block';
-  cartItemsEl.innerHTML = cart.map(item => `
-    <div class="cart-item">
-      <div class="cart-item-img">${item.emoji || '📦'}</div>
-      <div class="cart-item-info"><div class="cart-item-name">${item.name}</div><div class="cart-item-price">$${item.price} x ${item.qty}</div></div>
-      <div class="qty-control"><button class="qty-btn" onclick="updateCartItemQty(${item.id}, -1)">−</button><span class="qty-value">${item.qty}</span><button class="qty-btn" onclick="updateCartItemQty(${item.id}, 1)">+</button></div>
-      <div class="cart-item-remove" onclick="removeFromCart(${item.id})"><i class="fas fa-trash"></i></div>
-    </div>`).join('');
-
-  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-  const discount = Math.round(subtotal * 0.05);
-  const total = subtotal - discount;
-  document.getElementById('cart-subtotal').textContent = `$${subtotal.toLocaleString()}`;
-  document.getElementById('cart-discount').textContent = `-$${discount.toLocaleString()}`;
-  document.getElementById('cart-total').textContent = `$${total.toLocaleString()}`;
+    const items = document.getElementById('cart-items');
+    const empty = document.getElementById('cart-empty');
+    const summary = document.getElementById('cart-summary');
+    if (!items) return;
+    if (cart.length === 0) { items.innerHTML = ''; empty.style.display = 'block'; summary.style.display = 'none'; return; }
+    empty.style.display = 'none'; summary.style.display = 'block';
+    items.innerHTML = cart.map(i => `<div class="cart-item"><div class="cart-item-img">${i.emoji||'📦'}</div><div class="cart-item-info"><div class="cart-item-name">${i.name}</div><div class="cart-item-price">$${i.price} x ${i.qty}</div></div><div class="qty-control"><button class="qty-btn" onclick="updateCartItemQty(${i.id},-1)">−</button><span class="qty-value">${i.qty}</span><button class="qty-btn" onclick="updateCartItemQty(${i.id},1)">+</button></div><div class="cart-item-remove" onclick="removeFromCart(${i.id})"><i class="fas fa-trash"></i></div></div>`).join('');
+    const sub = cart.reduce((s, i) => s + i.price * i.qty, 0);
+    const disc = Math.round(sub * 0.05);
+    document.getElementById('cart-subtotal').textContent = `$${sub.toLocaleString()}`;
+    document.getElementById('cart-discount').textContent = `-$${disc.toLocaleString()}`;
+    document.getElementById('cart-total').textContent = `$${(sub - disc).toLocaleString()}`;
 }
 
-function updateCartItemQty(productId, delta) {
-  const item = cart.find(i => i.id === productId);
-  if (item) { item.qty += delta; if (item.qty <= 0) cart = cart.filter(i => i.id !== productId); }
-  renderCart(); updateCartBadge();
+function updateCartItemQty(id, delta) {
+    const i = cart.find(x => x.id === id);
+    if (i) { i.qty += delta; if (i.qty <= 0) cart = cart.filter(x => x.id !== id); }
+    renderCart(); updateCartBadge();
 }
 
 function confirmOrder() {
-  if (cart.length === 0) return;
-  showToast('¡Pedido confirmado! 🎉 Te avisamos cuando salga a ruta.');
-  cart = [];
-  updateCartBadge();
-  setTimeout(() => navigateTo('pedidos'), 1500);
+    if (!cart.length) return;
+    showToast('Pedido confirmado. Se le notificará cuando salga a ruta.');
+    cart = []; updateCartBadge();
+    setTimeout(() => navigateTo('pedidos'), 1500);
 }
 
 // ===== TOAST =====
-function showToast(message) {
-  const toast = document.getElementById('toast');
-  if (!toast) return;
-  toast.textContent = message;
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 2500);
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
 }
-
-// ===== LEGACY COMPAT: Functions called from ai-assistant.js =====
-function showTualitoWidget() { const w = document.getElementById('tuali-mascota-global'); if (w) w.style.display = 'flex'; }
-function hideTualitoWidget() { const w = document.getElementById('tuali-mascota-global'); if (w) w.style.display = 'none'; }
-function scheduleNotification() { setTimeout(() => { if (currentPage !== 'login' && currentPage !== 'asistente' && typeof showInventoryNotification === 'function') showInventoryNotification(); }, 15000); }
