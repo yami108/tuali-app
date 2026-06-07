@@ -489,30 +489,39 @@ def get_alertas():
 def tuali_chat():
     """
     POST /api/tuali-chat
-    Recibe texto del tendero (voz transcrita o escrita) y responde con IA.
-    Body: { "message": "texto del usuario", "context": "contexto adicional" }
+    Procesa exclusivamente la transcripción real del usuario (voz o texto).
     """
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Se requiere un cuerpo JSON válido."}), 400
+    try:
+        datos = request.get_json()
+        mensaje_usuario = (datos.get('mensaje') or datos.get('message', '')).strip() if datos else ''
 
-    # Aceptar tanto 'message' como 'mensaje' del frontend
-    user_message = data.get('message') or data.get('mensaje', '')
-    if not user_message:
-        return jsonify({"error": "Se requiere campo 'message' o 'mensaje'."}), 400
+        if not mensaje_usuario:
+            return jsonify({"respuesta": "No se ha detectado ninguna instrucción de voz. Por favor, intente hablar de nuevo.", "response": "No se ha detectado ninguna instrucción de voz. Por favor, intente hablar de nuevo."})
 
-    context = data.get('context', '') or data.get('contexto_pantalla', '')
+        # Validación: Procesar únicamente la entrada real del tendero
+        print(f"Procesando entrada real del tendero: {mensaje_usuario}")
 
-    # Llamar a Gemini (o fallback local)
-    response = call_gemini(user_message, context)
+        # Llamar a Gemini (o fallback local inteligente)
+        context = datos.get('context', '') or datos.get('contexto_pantalla', '')
+        response = call_gemini(mensaje_usuario, context)
 
-    return jsonify({
-        "response": response['text'],
-        "action": response.get('action'),
-        "order_id": response.get('order_id'),
-        "productos": response.get('productos'),
-        "timestamp": datetime.datetime.now().isoformat()
-    })
+        respuesta_texto = response.get('text', f"Entendido. He recibido su instrucción respecto a: '{mensaje_usuario}'. Procesando la solicitud en el sistema de Arca Continental.")
+
+        return jsonify({
+            "respuesta": respuesta_texto,
+            "response": respuesta_texto,
+            "action": response.get('action'),
+            "order_id": response.get('order_id'),
+            "productos": response.get('productos'),
+            "timestamp": datetime.datetime.now().isoformat()
+        })
+
+    except Exception as e:
+        print(f"Error en el servidor: {str(e)}")
+        return jsonify({
+            "respuesta": "En este momento no puedo procesar la solicitud. Por favor, intente nuevamente.",
+            "response": "En este momento no puedo procesar la solicitud. Por favor, intente nuevamente."
+        })
 
 
 @app.route('/api/confirmar-entrega', methods=['POST'])

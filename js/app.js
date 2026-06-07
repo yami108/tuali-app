@@ -93,6 +93,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const transcripcion = event.results[0][0].transcript;
         console.log("Entrada de voz procesada: ", transcripcion);
 
+        // Limpiar bocadillo anterior antes de insertar nueva respuesta
+        if (bocadillo) {
+            bocadillo.innerText = "Procesando solicitud...";
+            bocadillo.style.display = "block";
+        }
+
         // Envío directo al backend sin restricciones de formato para el usuario
         fetch('/api/tuali-chat', {
             method: 'POST',
@@ -106,19 +112,33 @@ document.addEventListener("DOMContentLoaded", () => {
         .then(response => response.json())
         .then(data => {
             const respuesta = data.response || data.respuesta || "Solicitud procesada.";
+            // Limpiar e insertar respuesta real del servidor
             if (bocadillo) {
-                bocadillo.style.display = "block";
+                bocadillo.innerText = '';
                 bocadillo.innerText = respuesta;
+                bocadillo.style.display = "block";
+            }
+            // También insertar en el historial del chat dedicado si está abierto
+            const historial = document.getElementById('tuali-historial-chat');
+            if (historial) {
+                agregarBurbujaChat('usuario', transcripcion);
+                agregarBurbujaChat('ai', respuesta);
             }
             // Síntesis de voz para adultos mayores
             if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); // Cancelar cualquier utterance anterior
                 const utterance = new SpeechSynthesisUtterance(respuesta.replace(/\*\*/g,''));
                 utterance.lang = 'es-MX';
                 utterance.rate = 0.9;
                 window.speechSynthesis.speak(utterance);
             }
         })
-        .catch(err => console.error("Error en la comunicación con el servidor:", err));
+        .catch(err => {
+            console.error("Error en la comunicación con el servidor:", err);
+            if (bocadillo) {
+                bocadillo.innerText = "Error de conexión. Intente de nuevo.";
+            }
+        });
     };
 
     // Alternar el estado del micrófono con un solo clic sobre la mascota
