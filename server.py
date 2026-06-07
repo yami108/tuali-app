@@ -35,13 +35,12 @@ CORS(app)
 
 # ===== CONFIGURATION =====
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
-OPENWEATHER_API_KEY = os.environ.get('OPENWEATHER_API_KEY', '')
-PORT = int(os.environ.get("PORT", 5000))
+WEATHER_API_KEY = os.environ.get('OPENWEATHER_API_KEY', '')
 DB_PATH = os.path.join(os.path.dirname(__file__), 'tuali.db')
 
 # Validación de credenciales al arranque
 GEMINI_STATUS = '✅ Activo' if GEMINI_API_KEY and GEMINI_API_KEY != 'TU_API_KEY_DE_GOOGLE_AI_STUDIO' else '❌ Sin API Key'
-WEATHER_STATUS = '✅ Activo' if OPENWEATHER_API_KEY and OPENWEATHER_API_KEY != 'TU_API_KEY_DE_OPENWEATHERMAP' else '❌ Sin API Key'
+WEATHER_STATUS = '✅ Activo' if WEATHER_API_KEY and WEATHER_API_KEY != 'TU_API_KEY_DE_OPENWEATHERMAP' else '❌ Sin API Key'
 
 SYSTEM_PROMPT = """Eres Tualito, el asistente virtual formal de Arca Continental. Tu lenguaje debe ser estrictamente institucional, profesional, claro y respetuoso en todo momento.
 
@@ -193,7 +192,7 @@ def get_weather(lat=None, lon=None):
     lat = lat or DURANGO_LAT
     lon = lon or DURANGO_LON
 
-    if not OPENWEATHER_API_KEY or OPENWEATHER_API_KEY == 'TU_API_KEY_DE_OPENWEATHERMAP':
+    if not WEATHER_API_KEY or WEATHER_API_KEY == 'TU_API_KEY_DE_OPENWEATHERMAP':
         # Fallback con datos climáticos estimados de Durango según la época del año
         mes = datetime.datetime.now().month
         if mes in [5, 6, 7, 8]:  # Verano - caluroso
@@ -204,7 +203,7 @@ def get_weather(lat=None, lon=None):
             return {"temp": 25, "description": "cielo despejado", "humidity": 45, "source": "fallback_durango_templado"}
 
     try:
-        url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OPENWEATHER_API_KEY}&units=metric&lang=es"
+        url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={WEATHER_API_KEY}&units=metric&lang=es"
         resp = requests.get(url, timeout=5)
         if resp.status_code != 200:
             raise Exception(f"HTTP {resp.status_code}")
@@ -849,7 +848,7 @@ def get_inventario():
 # ===== MAIN =====
 if __name__ == '__main__':
     init_db()
-    port = PORT
+    port = int(os.environ.get('PORT', 5000))
     print(f"""
     ╔══════════════════════════════════════════╗
     ║   🤖 TUALI AI Server - Arca Continental  ║
