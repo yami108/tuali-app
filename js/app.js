@@ -361,28 +361,33 @@ function toggleMic() {
     
     recognition = new SR();
     recognition.lang = 'es-MX';
-    recognition.interimResults = false;
-    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.continuous = true;
     
     recognition.onresult = (e) => {
-      const texto = e.results[0][0].transcript;
-      procesarMensaje(texto);
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          const texto = e.results[i][0].transcript.trim();
+          if (texto) procesarMensaje(texto);
+        }
+      }
     };
     recognition.onend = () => {
-      // Reiniciar si sigue activo
       if (micActivo) {
-        setTimeout(() => { try { recognition.start(); } catch(e){} }, 300);
+        setTimeout(() => { try { recognition.start(); } catch(e){} }, 200);
       } else {
         btn.classList.remove('grabando');
       }
     };
     recognition.onerror = (e) => {
-      if (e.error === 'no-speech' && micActivo) return; // Silencio, reintentar
-      micActivo = false;
-      btn.classList.remove('grabando');
+      console.log('Mic error:', e.error);
+      if (e.error === 'not-allowed') {
+        micActivo = false;
+        btn.classList.remove('grabando');
+        agregarMsgAI('Permite el acceso al micrófono. Haz clic en el candado de la barra de Chrome y activa "Micrófono".');
+      }
     };
     
-    // Pedir permiso
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => { stream.getTracks().forEach(t => t.stop()); })
@@ -393,7 +398,10 @@ function toggleMic() {
   if (!micActivo) {
     micActivo = true;
     btn.classList.add('grabando');
-    try { recognition.start(); } catch(e) {}
+    try { recognition.start(); } catch(e) {
+      recognition.stop();
+      setTimeout(() => { try { recognition.start(); } catch(e2){} }, 300);
+    }
   } else {
     micActivo = false;
     btn.classList.remove('grabando');
