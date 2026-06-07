@@ -12,6 +12,24 @@ import requests
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
+# ===== CARGA DE VARIABLES DE ENTORNO CON DOTENV =====
+try:
+    from dotenv import load_dotenv
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+    if os.path.exists(env_path):
+        load_dotenv(env_path)
+        print("✅ Archivo .env cargado correctamente.")
+    else:
+        print("⚠️  No se encontró archivo .env. Creando plantilla...")
+        with open(env_path, 'w') as f:
+            f.write("# TUALI AI - Variables de Entorno\n")
+            f.write("# Reemplace estos valores con sus credenciales reales\n\n")
+            f.write("GEMINI_API_KEY=TU_API_KEY_DE_GOOGLE_AI_STUDIO\n")
+            f.write("OPENWEATHER_API_KEY=TU_API_KEY_DE_OPENWEATHERMAP\n")
+        print("📄 Archivo .env creado. Configure sus API Keys antes de reiniciar.")
+except ImportError:
+    print("⚠️  python-dotenv no instalado. Ejecute: pip install python-dotenv")
+
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
 
@@ -19,6 +37,10 @@ CORS(app)
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
 WEATHER_API_KEY = os.environ.get('OPENWEATHER_API_KEY', '')
 DB_PATH = os.path.join(os.path.dirname(__file__), 'tuali.db')
+
+# Validación de credenciales al arranque
+GEMINI_STATUS = '✅ Activo' if GEMINI_API_KEY and GEMINI_API_KEY != 'TU_API_KEY_DE_GOOGLE_AI_STUDIO' else '❌ Sin API Key'
+WEATHER_STATUS = '✅ Activo' if WEATHER_API_KEY and WEATHER_API_KEY != 'TU_API_KEY_DE_OPENWEATHERMAP' else '❌ Sin API Key'
 
 SYSTEM_PROMPT = """Eres Tualito, el asistente virtual formal de Arca Continental. Tu lenguaje debe ser estrictamente institucional, profesional, claro y respetuoso en todo momento.
 
@@ -158,13 +180,33 @@ def get_db():
 
 
 # ===== WEATHER SERVICE =====
-def get_weather(lat=19.4326, lon=-99.1332):
-    """Obtiene clima actual de OpenWeatherMap."""
-    if not WEATHER_API_KEY:
-        return {"temp": 22, "description": "parcialmente nublado", "humidity": 55, "source": "default"}
+# Coordenadas por defecto: Durango, México (24.0277, -104.6532)
+DURANGO_LAT = 24.0277
+DURANGO_LON = -104.6532
+
+def get_weather(lat=None, lon=None):
+    """
+    Obtiene clima actual de OpenWeatherMap.
+    Fallback estructurado con datos climáticos de Durango, México si la API falla.
+    """
+    lat = lat or DURANGO_LAT
+    lon = lon or DURANGO_LON
+
+    if not WEATHER_API_KEY or WEATHER_API_KEY == 'TU_API_KEY_DE_OPENWEATHERMAP':
+        # Fallback con datos climáticos estimados de Durango según la época del año
+        mes = datetime.datetime.now().month
+        if mes in [5, 6, 7, 8]:  # Verano - caluroso
+            return {"temp": 34, "description": "cielo despejado", "humidity": 35, "source": "fallback_durango_verano"}
+        elif mes in [11, 12, 1, 2]:  # Invierno - frío seco
+            return {"temp": 14, "description": "parcialmente nublado", "humidity": 40, "source": "fallback_durango_invierno"}
+        else:  # Primavera/Otoño - templado
+            return {"temp": 25, "description": "cielo despejado", "humidity": 45, "source": "fallback_durango_templado"}
+
     try:
         url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={WEATHER_API_KEY}&units=metric&lang=es"
         resp = requests.get(url, timeout=5)
+        if resp.status_code != 200:
+            raise Exception(f"HTTP {resp.status_code}")
         data = resp.json()
         return {
             "temp": round(data['main']['temp']),
@@ -172,8 +214,15 @@ def get_weather(lat=19.4326, lon=-99.1332):
             "humidity": data['main']['humidity'],
             "source": "openweathermap"
         }
-    except Exception:
-        return {"temp": 22, "description": "parcialmente nublado", "humidity": 55, "source": "fallback"}
+    except Exception as e:
+        print(f"⚠️ Error obteniendo clima: {e}. Usando fallback de Durango.")
+        mes = datetime.datetime.now().month
+        if mes in [5, 6, 7, 8]:
+            return {"temp": 34, "description": "cielo despejado", "humidity": 35, "source": "fallback_durango"}
+        elif mes in [11, 12, 1, 2]:
+            return {"temp": 14, "description": "parcialmente nublado", "humidity": 40, "source": "fallback_durango"}
+        else:
+            return {"temp": 25, "description": "cielo despejado", "humidity": 45, "source": "fallback_durango"}
 
 
 # ===== GEMINI AI SERVICE =====
@@ -804,8 +853,11 @@ if __name__ == '__main__':
     ╔══════════════════════════════════════════╗
     ║   🤖 TUALI AI Server - Arca Continental  ║
     ║   Puerto: {port}                           ║
-    ║   Gemini: {'✅ Configurado' if GEMINI_API_KEY else '❌ Sin API Key (modo local)'}     ║
-    ║   Clima:  {'✅ Configurado' if WEATHER_API_KEY else '❌ Sin API Key (datos default)'}     ║
+    ║   Gemini: {GEMINI_STATUS}                  ║
+    ║   Clima:  {WEATHER_STATUS}                 ║
+    ║   Región: Durango, México (fallback)     ║
     ╚══════════════════════════════════════════╝
+    
+    Abra http://localhost:{port} en su navegador.
     """)
     app.run(host='0.0.0.0', port=port, debug=True)
